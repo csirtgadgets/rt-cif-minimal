@@ -1,0 +1,18 @@
+Collective Intelligence Framework
+=================================
+
+see: http://code.google.com/p/collective-intelligence-framework
+
+INSTALLATION
+
+$ perl Makefile.PL
+$ make
+$ sudo make install
+$ sudo make initdb
+$ sudo vi /opt/rt3/etc/RT_SiteConfig.pm
+
+Set(@Plugins,(qw(RT::FM RT::IR RT::IODEF RT::CIFMinimal)));
+
+$ sudo patch /opt/rt3/lib/RT/Interface/Web.pm etc/web.pm.patch
+$ sudo patch /opt/rt3/local/plugins/RT-IR/html/RTIR/Report/BulkReject.html etc/RTIR_BulkReject.html.patch
+$ sudo /etc/init.d/apache2 restart

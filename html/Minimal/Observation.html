@@ -1,0 +1,13 @@
+<& Elements/Header, Title => loc("New Observation") &>
+
+% if($assessment || $advanced){
+<& Elements/Observation, %ARGS &>
+% } else {
+<& Elements/ObservationSimple, %ARGS &>
+% }
+
+<%ARGS>
+$advanced => undef
+$assessment => undef
+</%ARGS>
+
