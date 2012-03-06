@@ -1,4 +1,6 @@
 <h1>Key Generation</h1>
+<& ApikeyWarning &>
+<br><br>
         <form method="post">
 <table>
     <tr>

@@ -39,6 +39,7 @@ window.onload = hide_me;
 </SCRIPT>
 <h3>Getting Started</h3>
 <ul>
+    <li>Group similar data-types (eg: IP, URL, FQDN, etc..) together when doing multiple-entries (csv)</li>
     <li>Information in the '<i>Raw Information</i>' section <b>is not shared externally</b></li>
     <li>Don't get stuck on where the data might end up</li>
     <li>Extra context can always go in the "details" box</li>
@@ -55,7 +56,7 @@ window.onload = hide_me;
         <td>
             <input onBlur=show_me(this) type='text' size=80 name="data" value="<%$data%>" title="ip's, domains, urls"/><br>
             <i>multiple datapoints can be entered using csv as long as they're both <b><% $assessment %></b> related<br>
-            (eg: 192.168.1.1,192.168.1.2 OR example1.com,example2.com,182.168.1.1 etc)</i>
+            and of the same data-type (eg: 192.168.1.1,192.168.1.2 OR example1.com,example2.com etc)</i>
                 
         </td>
     </tr>
