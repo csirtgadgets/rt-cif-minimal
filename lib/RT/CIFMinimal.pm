@@ -16,16 +16,19 @@ sub cif_data {
     my $fields  = $args->{'fields'} || 'restriction,guid,severity,confidence,address,rdata,portlist,protocol,impact,description,detecttime,alternativeid_restriction,alternativeid';
     my $user    = $args->{'user'};
     my $q       = $args->{'q'};
-    my $nolog   = $args->{'nolog'};
-    my @results = $args->{'results'};
+    my $nolog   = $args->{'nolog'} || 0;
+    my $results = $args->{'results'};
     return unless($q);
 
     require CIF::Client;
+    my $tls_verify = RT->Config->Get('CIFMinimal_TLS_Verify') || 0;
+
     my ($client,$err) = CIF::Client->new({
         host            => RT->Config->Get('CIFMinimal_APIHostname') || RT->Config->Get('WebBaseURL').'/api',
         simple_hashes   => 1,
         fields          => $fields,
         group_map       => 1,
+        verify_tls      => $tls_verify,
     });
     warn $err if($err);
     last if($err);
@@ -34,17 +37,18 @@ sub cif_data {
     unless($recs[0] && $recs[0]->uuid()){
         # generate apikey
         require RT::CIFMinimal;
-        my $id = RT::CIFMinimal::generate_apikey({ user => $user, key_description => 'generated automatically for WebUI search' });
+        my $id = RT::CIFMinimal::generate_apikey({ user => $user, description => 'generated automatically for WebUI search' });
         unless($id){
-            push(@results, 'unable to automatically generate an apikey, please contact your administrator');
+            push(@$results, 'unable to automatically generate an apikey, please contact your administrator');
             $RT::Logger->error('unable to generate an apikey for: '.$user->EmailAddress());
             return;
         } else {
             push(@recs,$id);
-            push(@results,'default WebUI apikey '.$id->uuid().' automatically generated');
+            push(@$results,'default WebUI apikey '.$id->uuid().' automatically generated');
         }
     }
     $client->{'apikey'} = $recs[0]->uuid();
+
     my @res;
     my @qarray = split(/,/,$q);
     foreach(@qarray){
@@ -65,6 +69,10 @@ sub cif_data {
             $client->{'oddrowclass'}     = 'oddline';
             my $t = CIF::Client::Plugin::Html->write_out($client,$feed,undef);
             push(@res,$t);
+        } else {
+            if($client->responseCode != 200){
+                push(@$results,$client->responseContent());
+            }
         }
     }
     my $text = (@res && $#res > -1) ? join("\n",@res) : '<h3>No Results</h3>';
