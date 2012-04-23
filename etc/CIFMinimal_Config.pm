@@ -118,4 +118,8 @@ Set(%CIFMinimal_StaleMap,
 # turn on the embedded "CIF Results view" to Display.html
 Set($CIFMinimal_CollectiveView,0);
 
+# set default number of submissions allowed at once
+# via the Minimal/Observation.html interface
+Set($CIFMinimal_MaxSubmissions,15);
+
 1;
