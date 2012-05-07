@@ -90,7 +90,7 @@ if($#datas < $max_submissions){
         my $subject = $report->get('IncidentAssessmentImpact').' '.$description;
 
         my $msg = $report->out();
-    
+
         $ARGS{'Subject'} = $subject;
         $ARGS{'Queue'} = 'Incident Reports';
         if($entered{$data}){
