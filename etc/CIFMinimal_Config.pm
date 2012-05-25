@@ -16,6 +16,8 @@ Set(%CIFMinimal_RestrictionMapping,
        #white          => 'public',
 );
 
+Set($CIFMinimal_ConfidenceUrl, 'http://code.google.com/p/collective-intelligence-framework/wiki/TaxonomyConfidence');
+
 Set(%CIFMinimal_ConfidenceMapping,
     'very confident'    => {
         order   => 1,

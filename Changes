@@ -1,3 +1,6 @@
+0.02    2012-05-25
+    - docfix to confidence on Minimal/Elements/Observation
+
 0.01    2012-04-23
     - added CIFMinimal_MaxSubmission option for Minimal/Observation.html
     - misc bugfixes

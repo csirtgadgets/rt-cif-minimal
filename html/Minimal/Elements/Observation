@@ -85,8 +85,12 @@ cf%>-Values" /><div id
 % foreach my $c (@confidence_sorted){
                 <option value='<% $confidence{$c}->{value} %>'><% $c %></option>
 % }
-            </select></br>
-            <i>best estimate, eg: would you put "boots on the ground" based on this observation?</i>
+            </select>
+% if($confidence_url){
+            <i>details about confidence <a target=_new href="<% $confidence_url %>">levels</a>
+% }
+            </br>
+            <i>best estimate, eg: would you 'filter live traffic' based on this observation?</i>
         </td>
     </tr>
 <tr id="portlist">
@@ -223,6 +227,8 @@ my $share_with = RT->Config->Get('CIFMinimal_ShareWith') || {
         checked     => 1,
     }
 };
+
+my $confidence_url = RT->Config->Get('CIFMinimal_ConfidenceUrl');
 </%INIT>
 <%ARGS>
 $portlist => ''
