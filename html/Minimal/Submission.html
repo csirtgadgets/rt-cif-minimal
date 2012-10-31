@@ -37,8 +37,8 @@ my $Format = qq{
     LastUpdated,
     };
 
-require XML::IODEF::Simple;
-require CIF::Utils;
+require Iodef::Pb::Simple;
+require Iodef::Pb qw/iodef_descriptions/;
 
 my $max_submissions = RT->Config->Get('CIFMinimal_MaxSubmissions') || 15;
 
@@ -49,7 +49,6 @@ if($confidence > $d_confidence){
     $confidence = $d_confidence unless($session{'CurrentUser'}->Privileged());
 }
 
-#my $guid = (CIF::Utils::isUUID($group)) ? $group : CIF::Utils::genSourceUUID($group);
 my $guid = $group;
 
 my $constituency_cf = RT::IR->CustomFields( 'Constituency', Queue => $Queue );
@@ -84,12 +83,11 @@ if($#datas < $max_submissions){
             confidence      => $confidence,
             sharewith       => $sharewith,
         };
-        my $report = XML::IODEF::Simple->new($hash);
+        my $report = Iodef::Pb::Simple->new($hash);
 
-        $description = $report->get('IncidentDescription');
-        my $subject = $report->get('IncidentAssessmentImpact').' '.$description;
+        my $subject = $real_assessment.' '.$description;
 
-        my $msg = $report->out();
+        my $msg = $report->encode();
 
         $ARGS{'Subject'} = $subject;
         $ARGS{'Queue'} = 'Incident Reports';
