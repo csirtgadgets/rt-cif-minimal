@@ -133,13 +133,16 @@ my $Transactions = $Ticket->Transactions;
 my $attachments = $m->comp( '/Ticket/Elements/FindAttachments', Ticket => $Ticket );
 $m->callback(CallbackName => 'BeforeDisplay', Ticket => \$Ticket, ARGSRef => \%ARGS);
 
-require RT::CIFMinimal;
-my $cif_data = RT::CIFMinimal::cif_data({
-    user    => $session{'CurrentUser'}->UserObj(),
-    q       => $Ticket->FirstCustomFieldValue('Address'),
-    nolog   => 1,
-    results => \@results,
-});
+my $cif_data;
+if(RT->Config->Get('CIFMinimal_CollectiveView')){   
+    require CIF::Minimal;
+    $cif_data = RT::CIFMinimal::cif_data({
+        user    => $session{'CurrentUser'}->UserObj(),
+        q       => $Ticket->FirstCustomFieldValue('Address'),
+        nolog   => 1,
+        results => \@results,
+    });
+}
 
 </%INIT>
 
