@@ -24,7 +24,7 @@ if(my $help = RT->Config->Get('CIFMinimal_HelpUrl')){
 }
 
 if($session{'CurrentUser'}->HasRight( Right => 'ModifySelf', Object => $RT::System )) {
-        $tabs->{X} = { title => loc('Preferences'), path => 'Minimal/Prefs.html'};
+    $tabs->{X} = { title => loc('Preferences'), path => 'Minimal/Prefs.html'};
 }
 
 

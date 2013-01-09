@@ -13,6 +13,24 @@ use CIF::Profile;
 require CIF::Client;
 use Iodef::Pb::Format;
 
+my @ipv4_private = (
+    "0.0.0.0/8",
+    "10.0.0.0/8",
+    "127.0.0.0/8",
+    "192.168.0.0/16",
+    "169.254.0.0/16",
+    "192.0.2.0/24",
+    "224.0.0.0/4",
+    "240.0.0.0/5",
+    "248.0.0.0/5"
+);
+
+sub IsPrivateAddress {
+    my $addr = shift;
+    my $found =  Net::CIDR::cidrlookup($addr,@ipv4_private);
+    return($found);
+}
+
 sub cif_data {
     my $args = shift;
     
@@ -118,7 +136,7 @@ sub remove_key {
     return unless($key);
     
     my ($err,$ret) = CIF::Profile->new({
-        config  => RT->Config->('CIFMinimal_CifConfig') || '/home/cif/.cif',
+        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
     });
     
     return $ret->remove($key);
@@ -134,7 +152,7 @@ sub generate_apikey {
     return unless($user && ref($user) eq 'RT::User');
 
     my ($err,$ret) = CIF::Profile->new({
-        config  => RT->Config->('CIFMinimal_CifConfig') || '/home/cif/.cif',
+        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
     });
     return $err unless($ret);
     my $profile = $ret;
@@ -169,7 +187,7 @@ sub generate_apikey {
     my $id = $profile->user_add({
         userid          => $user->EmailAddress() || $user->Name(),
         description     => $key_desc,
-        default_guid    => $default_guid,
+        default_group   => $default_guid,
         groups          => join(',',@a_groups),
     });
     return($id); 
@@ -193,24 +211,6 @@ sub network_info {
         description => $as_desc,
     }) if($as);
     return(0);
-}
-
-my @list = (
-    "0.0.0.0/8",
-    "10.0.0.0/8",
-    "127.0.0.0/8",
-    "192.168.0.0/16",
-    "169.254.0.0/16",
-    "192.0.2.0/24",
-    "224.0.0.0/4",
-    "240.0.0.0/5",
-    "248.0.0.0/5"
-);
-
-sub IsPrivateAddress {
-    my $addr = shift;
-    my $found =  Net::CIDR::cidrlookup($addr,@list);
-    return($found);
 }
 
 sub ReportsByType {

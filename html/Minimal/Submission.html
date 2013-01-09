@@ -60,6 +60,8 @@ my $real_assessment = $assessment;
 $real_assessment =~ s/\/\S+$//;
 my @datas = split(/,/,$data);
 
+$sharewith = [$sharewith] unless(ref($sharewith) eq 'ARRAY');
+
 my @submitted;
 my %entered;
 if($#datas < $max_submissions){
@@ -83,7 +85,7 @@ if($#datas < $max_submissions){
             },
             purpose         => $purpose,
             confidence      => $confidence,
-            sharewith       => $sharewith,
+            carboncopy      => join(',',@$sharewith),
         };
         my $report = Iodef::Pb::Simple->new($hash);
 
