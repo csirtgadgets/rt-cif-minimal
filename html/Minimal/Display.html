@@ -48,6 +48,7 @@
 
 
 <%INIT>
+use RT::CIFMinimal;
 my ( $field, @results );
 
 # {{{ Load the ticket
@@ -135,7 +136,6 @@ $m->callback(CallbackName => 'BeforeDisplay', Ticket => \$Ticket, ARGSRef => \%A
 
 my $cif_data;
 if(RT->Config->Get('CIFMinimal_CollectiveView')){   
-    require CIF::Minimal;
     $cif_data = RT::CIFMinimal::cif_data({
         user    => $session{'CurrentUser'}->UserObj(),
         q       => $Ticket->FirstCustomFieldValue('Address'),

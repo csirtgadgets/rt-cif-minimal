@@ -43,13 +43,14 @@
 </table>
 
 <%init>
+use CIF qw/generate_uuid_ns/;
 my %group_map;
 foreach (keys %groups){
-    $group_map{CIF::Utils::genSourceUUID($_)} = $_;
+    $group_map{generate_uuid_ns($_)} = $_;
 }
 </%init>
 
 <%ARGS>
-@recs => undef
+@recs   => undef
 %groups => undef
 </%ARGS>

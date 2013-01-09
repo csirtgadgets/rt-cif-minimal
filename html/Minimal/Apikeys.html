@@ -21,7 +21,7 @@
 &>
 
 <%INIT>
-require CIF::WebAPI::APIKey;
+require RT::CIFMinimal;
 my $user = $session{'CurrentUser'}->UserObj();
 
 my $g = $user->OwnGroups();
@@ -47,7 +47,7 @@ if($GenerateKey){
     unless($found){
         push(@results,'default group must be in your Groups selection');
     } else {
-        require RT::CIFMinimal;
+        
         my $id = RT::CIFMinimal::generate_apikey({
             user            => $user,
             description     => $key_description,
@@ -63,17 +63,15 @@ if($GenerateKey){
 }
 
 if($PurgeKey){
-    my $r = CIF::WebAPI::APIKey->retrieve(uuid => $uuid);
-    my $_uuid = $r->uuid();
-    if($r->delete()){
-        push(@results,$_uuid.' deleted');
+    if(RT::CIFMinimal::remove_key($uuid)){
+        push(@results,$uuid.' deleted');
     } else {
-        push(@results,'error trying to delete: '.$_uuid);
+        push(@results,'error trying to delete: '.$uuid);
     }
 }
 
-my @recs = CIF::WebAPI::APIKey->search(uuid_alias => $user->EmailAddress());
-use Data::Dumper;
+my $ret = RT::CIFMinimal::user_list($user);
+my @recs = @$ret;
 
 #A hack to make sure that session gets rewritten.
 $session{'i'}++;

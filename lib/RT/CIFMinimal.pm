@@ -9,121 +9,170 @@ use strict;
 use Net::Abuse::Utils qw(:all);
 use Regexp::Common qw/net URI/;
 use Net::CIDR;
+use CIF::Profile;
+require CIF::Client;
+use Iodef::Pb::Format;
 
 sub cif_data {
     my $args = shift;
     
     my $fields  = $args->{'fields'} || 'restriction,guid,severity,confidence,address,rdata,portlist,protocol,impact,description,detecttime,alternativeid_restriction,alternativeid';
-    my $user    = $args->{'user'};
-    my $q       = $args->{'q'};
-    my $nolog   = $args->{'nolog'} || 0;
+    my $q       = $args->{'q'}      || $args->{'query'};
+    my $nolog   = $args->{'nolog'}  || 0;
+    my $limit   = $args->{'limit'}  || 25;
     my $results = $args->{'results'};
+    my $user    = $args->{'user'};
     return unless($q);
 
-    require CIF::Client;
-    my $tls_verify = RT->Config->Get('CIFMinimal_TLS_Verify') || 0;
-
-    my ($client,$err) = CIF::Client->new({
-        host            => RT->Config->Get('CIFMinimal_APIHostname') || RT->Config->Get('WebBaseURL').'/api',
-        simple_hashes   => 1,
-        fields          => $fields,
-        group_map       => 1,
-        verify_tls      => $tls_verify,
+    my ($err,$ret) = CIF::Client->new({
+        config          => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
     });
-    warn $err if($err);
-    last if($err);
-    require CIF::WebAPI::APIKey;
-    my @recs = CIF::WebAPI::APIKey->search(uuid_alias => $user->EmailAddress());
-    unless($recs[0] && $recs[0]->uuid()){
+    return $err if($err);
+    
+    my $client = $ret;
+   
+    $ret = user_list($user);
+    unless($ret && @{$ret}[0]->uuid()){
         # generate apikey
-        require RT::CIFMinimal;
-        my $id = RT::CIFMinimal::generate_apikey({ user => $user, description => 'generated automatically for WebUI search' });
+        my $id = generate_apikey({ user => $user, description => 'generated automatically for WebUI search' });
         unless($id){
             push(@$results, 'unable to automatically generate an apikey, please contact your administrator');
             $RT::Logger->error('unable to generate an apikey for: '.$user->EmailAddress());
             return;
         } else {
-            push(@recs,$id);
+            $client->set_apikey($id);
             push(@$results,'default WebUI apikey '.$id->uuid().' automatically generated');
         }
+    } else {
+        $client->set_apikey(@{$ret}[0]->uuid());
     }
-    $client->{'apikey'} = $recs[0]->uuid();
 
     my @res;
-    my @qarray = split(/,/,$q);
-    foreach(@qarray){
-        my $feed = $client->GET(
-            query   => $_,
-            limit   => 25,
-            nolog   => $nolog,
-        );
-        if($feed){
-            @recs = @{$feed->{'feed'}->{'entry'}};
-            if($#recs > -1){
-                @recs = sort { $b->{'confidence'} cmp $a->{'confidence'} } @recs;
-                $feed->{'feed'}->{'entry'} = \@recs;
-            }
-            require CIF::Client::Plugin::Html;
-            $client->{'class'}          = 'collection';
-            $client->{'evenrowclass'}    = 'evenline';
-            $client->{'oddrowclass'}     = 'oddline';
-            my $t = CIF::Client::Plugin::Html->write_out($client,$feed,undef);
-            push(@res,$t);
-        } else {
-            if($client->responseCode != 200){
-                push(@$results,$client->responseContent());
-            }
-        }
+    my @array = split(/,/,$q);
+    ($err,$ret) = $client->search({
+        query   => \@array,
+        nolog   => $nolog,
+        limit   => $limit,
+    });
+    unless($ret){
+        push(@$results,'no results...');
+        return;
     }
-    my $text = (@res && $#res > -1) ? join("\n",@res) : '<h3>No Results</h3>';
+    my @html;
+    foreach my $feed (0 ... $#{$ret}){
+        # stolen from bin/cif command, line ~245   
+        my $x = $feed;
+        $feed = @{$ret}[$feed];
+        next unless($feed->get_data());
+            my $t = Iodef::Pb::Format->new({
+                config              => $client->get_global_config(),
+                format              => 'Html',
+                data                => $feed->get_data(),
+                
+                group_map           => $feed->get_group_map(),
+                restriction_map     => $feed->get_restriction_map(),
+                
+                confidence          => $feed->get_confidence(),
+                guid                => $feed->get_guid(),
+                uuid                => $feed->get_uuid(),
+                description         => $feed->get_description(),
+                restriction         => $feed->get_restriction(),
+                reporttime          => $feed->get_ReportTime(),
+                
+                # config stuff
+                sortby              => 'reporttime',
+                sortby_direction    => 'desc',
+                limit               => $limit,
+                round_confidence    => 1,
+                
+                # this is bound to cause us problems if not lined up properly
+                # with the original $feeds array, or if there is a gap in $feeds
+                # compared to the $q array, we should make sure the router returns
+                # are in-sync
+                query               => $array[$x],
+            });
+        push(@html,$t);
+    }
+    
+    my $text = (@html && $#html > -1) ? join("\n",@html) : '<h3>No Results</h3>';
     return($text);
 }
 
+sub user_list {
+    my $user = shift;
+    
+    return unless($user && ref($user) eq 'RT::User');
+    
+    my ($err,$ret) = CIF::Profile->new({
+        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
+    });
+    
+    my @recs = $ret->user_list({user => $user->EmailAddress()});
+    return unless($recs[0] && $recs[0]->uuid());
+    return(\@recs);
+}
+    
+
+sub remove_key {
+    my $key = shift;
+    return unless($key);
+    
+    my ($err,$ret) = CIF::Profile->new({
+        config  => RT->Config->('CIFMinimal_CifConfig') || '/home/cif/.cif',
+    });
+    
+    return $ret->remove($key);
+}
+
 sub generate_apikey {
-    my $args        = shift;
-    my $user        = $args->{'user'};
-    my $key_desc    = $args->{'description'};
+    my $args            = shift;
+    my $user            = $args->{'user'};
+    my $key_desc        = $args->{'description'};
     my $default_guid    = $args->{'default_guid'};
     my $add_groups      = $args->{'groups'};
 
+    return unless($user && ref($user) eq 'RT::User');
+
+    my ($err,$ret) = CIF::Profile->new({
+        config  => RT->Config->('CIFMinimal_CifConfig') || '/home/cif/.cif',
+    });
+    return $err unless($ret);
+    my $profile = $ret;
+
     my @a_groups = (ref($add_groups) eq 'ARRAY') ? @$add_groups : $add_groups;
 
-    return unless($user);
+    my $g = $user->OwnGroups();
+    my %group_map;
 
-    require CIF::WebAPI::APIKey;
-    if(ref($user) eq 'RT::User'){
-        my $g = $user->OwnGroups();
-        my %group_map;
-
-        while(my $grp = $g->Next()){
-            next unless($grp->Name() =~ /^DutyTeam (\S+)/);
-            my $guid = lc($1);
-            my $priority = $grp->FirstCustomFieldValue('CIFGroupPriority');
-            $group_map{$guid} = $priority;
-        }
-        $group_map{'everyone'} = 1000;
-        my @sorted = sort { $group_map{$a} <=> $group_map{$b} } keys(%group_map);
-        if($default_guid){
-            $default_guid = $sorted[0] unless(exists($group_map{$default_guid}));
-        } else {
-            $default_guid = $sorted[0];
-        }
-        ## TODO -- fix this
-        unless($a_groups[0]){
-            @a_groups = @sorted;
-        } else {
-            foreach (@a_groups){
-                return unless(exists($group_map{$_}));
-            }
-        }
-        my $id = CIF::WebAPI::APIKey->genkey(
-            uuid_alias      => $user->EmailAddress() || $user->Name(),
-            description     => $key_desc,
-            default_guid    => $default_guid,
-            groups          => join(',',@a_groups),
-        );
-        return($id); 
+    while(my $grp = $g->Next()){
+        next unless($grp->Name() =~ /^DutyTeam (\S+)/);
+        my $guid = lc($1);
+        my $priority = $grp->FirstCustomFieldValue('CIFGroupPriority');
+        $group_map{$guid} = $priority;
     }
+    $group_map{'everyone'} = 1000;
+    my @sorted = sort { $group_map{$a} <=> $group_map{$b} } keys(%group_map);
+    if($default_guid){
+        $default_guid = $sorted[0] unless(exists($group_map{$default_guid}));
+    } else {
+        $default_guid = $sorted[0];
+    }
+    
+    ## TODO -- fix this
+    unless($a_groups[0]){
+        @a_groups = @sorted;
+    } else {
+        foreach (@a_groups){
+            return unless(exists($group_map{$_}));
+        }
+    }
+    my $id = $profile->user_add({
+        userid          => $user->EmailAddress() || $user->Name(),
+        description     => $key_desc,
+        default_guid    => $default_guid,
+        groups          => join(',',@a_groups),
+    });
+    return($id); 
 }
 
 sub network_info {
@@ -136,11 +185,11 @@ sub network_info {
         $as_desc = get_as_description($as);
     }
     return({
-        asn => $as,
-        cidr    => $network,
-        cc  => $ccode,
-        rir => $rir,
-        modified => $date,
+        asn         => $as,
+        cidr        => $network,
+        cc          => $ccode,
+        rir         => $rir,
+        modified    => $date,
         description => $as_desc,
     }) if($as);
     return(0);

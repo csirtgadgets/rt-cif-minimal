@@ -44,8 +44,9 @@
 
 
 <%INIT>
+use CIF qw/generate_uuid_ns/;
 my @sorted = sort { $groups{$a} <=> $groups{$b} } keys(%groups);
-my @guid = map { CIF::Utils::genSourceUUID($_) } @sorted;
+my @guid = map { generate_uuid_ns($_) } @sorted;
 </%INIT>
 
 <%ARGS>

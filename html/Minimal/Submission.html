@@ -25,6 +25,10 @@
 % }
 
 <%INIT>
+use Iodef::Pb::Simple;
+use CIF qw/generate_uuid_random/;
+use Compress::Snappy;
+use MIME::Base64;
 
 unless($data){
     RT::Interface::Web::Redirect(RT->Config->Get('WebURL').'Minimal/Observation.html');
@@ -35,10 +39,7 @@ my $Format = qq{
    '<B><A HREF="}. RT->Config->Get('WebPath') .qq{/Minimal/Display.html?id=__id__" target='_blank'">__Subject__</a></B>/TITLE:Subject',
     Created,
     LastUpdated,
-    };
-
-require Iodef::Pb::Simple;
-require Iodef::Pb qw/iodef_descriptions/;
+};
 
 my $max_submissions = RT->Config->Get('CIFMinimal_MaxSubmissions') || 15;
 
@@ -67,6 +68,7 @@ if($#datas < $max_submissions){
         $data =~ s/^[ \t]+//g;
         $data = lc($data);
         my $hash = {
+            id              => generate_uuid_random(),
             guid            => $guid,
             restriction     => $restriction,
             description     => $description,
@@ -86,8 +88,9 @@ if($#datas < $max_submissions){
         my $report = Iodef::Pb::Simple->new($hash);
 
         my $subject = $real_assessment.' '.$description;
-
         my $msg = $report->encode();
+        $msg = encode_base64(compress($msg));
+        $msg = 'application/base64+snappy+pb+iodef'."\n".$msg;
 
         $ARGS{'Subject'} = $subject;
         $ARGS{'Queue'} = 'Incident Reports';
@@ -106,18 +109,6 @@ if($#datas < $max_submissions){
                 push(@results,$rr);
         
                 #push(@results,$msg) if(RT->Config->Get('LogToSyslog') eq 'debug');
-                require CIF::Archive;
-                require CIF::FeedParser::ParseJsonIodef;
-                require JSON;
-                my $r = $ticket->IODEF();
-
-                my $ret = CIF::FeedParser::ParseJsonIodef::parse(undef,JSON::to_json([$r->to_tree()]));
-                foreach(@$ret){
-                    $_->{'detcttime'} = $ticket->CreatedAsString();
-                    my ($err,$id) = CIF::Archive->insert($_);
-                    warn $err if($err);
-                    warn $id if($id);
-                }
             }
         }
     }

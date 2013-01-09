@@ -3,7 +3,7 @@
 % }
 
 <%INIT>
-require CIF::Utils;
+use CIF qw/generate_uuid_ns/;
 require HTML::Table;
 my $table = HTML::Table->new(
     -head           => ['Group Name','Default','GUID'],
@@ -12,7 +12,7 @@ my $table = HTML::Table->new(
     -oddrowclass    => 'oddline',
 );
 my @sorted = sort { $groups{$a} <=> $groups{$b} } keys(%groups);
-my @guid = map { CIF::Utils::genSourceUUID($_) } @sorted;
+my @guid = map { generate_uuid_ns($_) } @sorted;
 foreach (0 ... $#sorted){
     my $isDefault = ($_ == 0) ? 'true' : '';
     $table->addRow($sorted[$_],$isDefault,$guid[$_]);
