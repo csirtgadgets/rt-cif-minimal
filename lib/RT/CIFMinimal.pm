@@ -52,7 +52,7 @@ sub cif_data {
     $ret = user_list($user);
     unless($ret && @{$ret}[0]->uuid()){
         # generate apikey
-        my $id = generate_apikey({ user => $user, description => 'generated automatically for WebUI search' });
+        my $id = generate_apikey({ user => $user, description => 'generated automatically via RT' });
         unless($id){
             push(@$results, 'unable to automatically generate an apikey, please contact your administrator');
             $RT::Logger->error('unable to generate an apikey for: '.$user->EmailAddress());

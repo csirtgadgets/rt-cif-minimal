@@ -29,6 +29,7 @@ use Iodef::Pb::Simple;
 use CIF qw/generate_uuid_random/;
 use Compress::Snappy;
 use MIME::Base64;
+use CIF::Client;
 
 unless($data){
     RT::Interface::Web::Redirect(RT->Config->Get('WebURL').'Minimal/Observation.html');
@@ -42,6 +43,15 @@ my $Format = qq{
 };
 
 my $max_submissions = RT->Config->Get('CIFMinimal_MaxSubmissions') || 15;
+my ($err,$ret) = CIF::Client->new({
+    config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
+});
+if($err){
+    $RT::Logger->warning($err);
+    push(@results,'error loading client config, contact your administrator');
+    return;
+}
+my $cli = $ret;
 
 # just in case someone tries to set it on their own
 # w/o the proper rights
@@ -100,17 +110,33 @@ if($#datas < $max_submissions){
             # we call this the 'gabe' clause
             push(@results,'skipping duplicate: '.$data);
         } else {
-            my ($ticket,@res) = CreateTicket(Content => $msg, Attachments => $session{'Attachments'}, %ARGS, Status => 'new');
+            # create the internal ticket
+            my ($ticket,@res) = CreateTicket(
+                Content     => $msg, 
+                Attachments => $session{'Attachments'}, 
+                Status      => 'new',
+                %ARGS
+            );
             $ticket->Comment(Content => $ARGS{'ReferenceDescription'});
             if($ticket->Status() eq 'rejected'){
                 push(@results,'Ticket contained bad-data (private address?), auto-rejected');
             } else {
-                $entered{$data} = 1;
-                push(@submitted,$ticket->Id());
-                my $rr = 'Ticket '.$ticket->Id().' Created -- '.$ticket->Subject();
-                push(@results,$rr);
-        
-                #push(@results,$msg) if(RT->Config->Get('LogToSyslog') eq 'debug');
+                # submit to CIF
+                $ret = $cli->new_submission({
+                    guid    => $guid,
+                    data    => $report->encode(),
+                });
+                $ret = $cli->submit($ret);
+                if($ret =~ /^ERROR/){
+                    $ticket->SetStatus('rejected');
+                    push(@results,$ret.', contact your administrator');
+                    last;
+                } else {
+                    $entered{$data} = 1;
+                    push(@submitted,$ticket->Id());
+                    my $rr = 'Ticket '.$ticket->Id().' Created -- '.$ticket->Subject();
+                    push(@results,$rr);
+                }
             }
         }
     }
