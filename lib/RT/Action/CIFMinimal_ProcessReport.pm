@@ -6,7 +6,6 @@ use warnings;
 use base 'RT::Action::Generic';
 use RT::CIFMinimal;
 use Regexp::Common qw(net);
-use Regexp::Common::net::CIDR;
 
 sub Prepare { return(1); }
 

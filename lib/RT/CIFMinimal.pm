@@ -31,6 +31,24 @@ sub IsPrivateAddress {
     return($found);
 }
 
+sub cif_submit {
+    my $args = shift;
+    
+    my $report  = $args->{'report'};
+    my $guid    = $args->{'guid'} || 'everyone';
+
+    my ($err,$ret) = CIF::Client->new({
+        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
+    });
+    my $cli = $ret;
+    $ret = $cli->new_submission({
+        guid    => $guid,
+        data    => $report->encode(),
+    });
+
+    return $cli->submit($ret);
+}
+
 sub cif_data {
     my $args = shift;
     
@@ -223,16 +241,14 @@ sub ReportsByType {
     my $category = $t[$#t-1];
 
     my $reports = RT::Tickets->new($user);
-    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open')";
+    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open') AND 'CF.{Confidence}' IS NOT NULL AND 'CF.{Assessment Impact}' IS NOT NULL AND 'CF.{Address}' IS NOT NULL";
     $reports->FromSQL($query);
     $reports->OrderByCols({FILED => 'id', ORDER => 'DESC'});
     
     my $array;
-    my $x = 0;
     while(my $r = $reports->Next()){
         warn $r->id();
         push(@$array,$r->IODEF());
-        last if($x++ > 1);
     }
     return unless($#{$array} > -1);
     return($array);

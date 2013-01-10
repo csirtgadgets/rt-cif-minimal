@@ -7,7 +7,9 @@ use base qw(RT::Condition::Generic);
 
 sub IsApplicable {
     my $self = shift;
+    
     return(0) unless($self->TicketObj->Status() eq 'open');
+    
     my $txn = $self->TransactionObj();
     my $type = $txn->Type();
     return(0) unless($type eq 'CustomField');

@@ -1,24 +1,27 @@
 package RT::Action::CIFMinimal_ReopenReport;
 use base 'RT::Action::Generic';
 
-require CIF::Archive;
-require JSON;
+require RT::CIFMinimal;
 
 sub Prepare { return 1; }
 
 sub Commit {
 	my $self = shift;
+	
+	my $tkt = $self->TicketObj();
 
-    my $r = $self->TicketObj->IODEF();
-
-    #my $ret = CIF::FeedParser::ParseJsonIodef::parse({},JSON::to_json([$r->to_tree()]));
-
-    foreach(@$ret){
-        $_->{'detecttime'} = DateTime->from_epoch(epoch => time());
-        my ($err,$id) = CIF::Archive->insert($_);
-        warn $err if($err);
-        warn $id if($id);
+    my $report = $self->TicketObj->IODEF();
+    my $incident = @{$report->get_Incident()}[0];
+    $incident->set_ReportTime(DateTime->from_epoch(epoch => time()));
+    my ($err,$id) = RT::CIFMinimal::cif_submit({
+        report  => $report,
+        guid    => $tkt->FirstCustomFieldValue('Constituency') || $tkt->FirstCustomFieldValue('_RTIR_Constituency'),
+    });
+    if($err){
+        $RT::Logger->warning($err);
+        return;
     }
+    return $id;
 }
 
 1;
