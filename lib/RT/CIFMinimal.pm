@@ -226,14 +226,17 @@ sub ReportsByType {
     my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open')";
     $reports->FromSQL($query);
     $reports->OrderByCols({FILED => 'id', ORDER => 'DESC'});
-    my @array;
-
+    
+    my $array;
+    my $x = 0;
     while(my $r = $reports->Next()){
-        push(@array,$r->IODEF->to_tree());
+        warn $r->id();
+        push(@$array,$r->IODEF());
+        last if($x++ > 1);
     }
-    return ('') unless($#array > -1);
-    require JSON;
-    return(JSON::to_json(\@array));
+    return unless($#{$array} > -1);
+    return($array);
+    
 }
 
 {

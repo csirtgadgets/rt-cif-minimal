@@ -1,9 +1,16 @@
 <%INIT>
 require RT::CIFMinimal;
-my $text = RT::CIFMinimal::ReportsByType($session{'CurrentUser'});
+use MIME::Base64;
+use Compress::Snappy;
+use Data::Dumper;
+
+my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'});
+$array = [ map { encode_base64(compress($_->encode())) } @$array ];
+$array = join("\n",@$array);
+$array = 'application/base64+snappy+pb+iodef'."\n".$array;
 
 $r->content_type('text/plain');
-$m->out($text);
+$m->out($array);
 
 $m->abort();
 </%INIT>
