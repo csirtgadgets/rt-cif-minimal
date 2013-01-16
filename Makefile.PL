@@ -20,11 +20,10 @@ unshift @INC, $local_lib_path, $lib_path;
 requires('Regexp::Common'               => '2.122');
 requires('Regexp::Common::net::CIDR'    => '0.02');
 requires('Net::Abuse::Utils'            => '0.10');
-requires('JSON'                         => '2.07');
-requires('XML::IODEF::Simple'           => '0.00');
-requires('CIF::Client'                  => '0.01');
 requires('Net::CIDR'                    => '0.11');
-requires('HTML::Table'                  => '2.08');
+requires('Iodef::Pb::Simple'            => '0.17');
+requires('RT::IODEF'                    => '0.10');
+requires('CIF'                          => '0.99');
 auto_install();
 
 tests("t/*.t t/*/*.t");
