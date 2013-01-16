@@ -1,5 +1,33 @@
 use inc::Module::Install;
 
+# fix lib paths, some may be relative
+BEGIN {
+    require File::Spec;
+    my @libs = (
+        "/opt/cif/lib",
+        "/opt/rt3/local/plugins/RT-IODEF/lib",
+        "../cif-v1/libcif/lib", # dev mode
+    );
+    my $bin_path;
+
+    for my $lib (@libs) {
+        unless ( File::Spec->file_name_is_absolute($lib) ) {
+            unless ($bin_path) {
+                if ( File::Spec->file_name_is_absolute(__FILE__) ) {
+                    $bin_path = ( File::Spec->splitpath(__FILE__) )[1];
+                }
+                else {
+                    require FindBin;
+                    no warnings "once";
+                    $bin_path = $FindBin::Bin;
+                }
+            }
+            $lib = File::Spec->catfile( $bin_path, File::Spec->updir, $lib );
+        }
+        unshift @INC, $lib;
+    }
+}
+
 RTx('RT-CIFMinimal');
 license('GPL Version 2');
 author('Barely3am Solutions <wes@barely3am.com>');
@@ -22,7 +50,7 @@ requires('Regexp::Common::net::CIDR'    => '0.02');
 requires('Net::Abuse::Utils'            => '0.10');
 requires('Net::CIDR'                    => '0.11');
 requires('Iodef::Pb::Simple'            => '0.17');
-requires('RT::IODEF'                    => '0.10');
+requires('RT::IODEF'                    => '0.09_1');
 requires('CIF'                          => '0.99');
 auto_install();
 
