@@ -4,7 +4,7 @@ use MIME::Base64;
 use Compress::Snappy;
 use Data::Dumper;
 
-my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'});
+my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'},$group);
 $array = [ map { encode_base64(compress($_->encode())) } @$array ];
 $array = join("\n",@$array);
 $array = 'application/base64+snappy+pb+iodef'."\n".$array;
@@ -14,5 +14,7 @@ $m->out($array);
 
 $m->abort();
 </%INIT>
-<%args>
-</%args>
+
+<%ARGS>
+$group => 'everyone'
+</%ARGS>

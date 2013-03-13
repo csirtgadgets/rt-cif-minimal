@@ -71,7 +71,8 @@ if($PurgeKey){
 }
 
 my $ret = RT::CIFMinimal::user_list($user);
-my @recs = @$ret;
+my @recs;
+@recs = $@ret if($ret);
 
 #A hack to make sure that session gets rewritten.
 $session{'i'}++;

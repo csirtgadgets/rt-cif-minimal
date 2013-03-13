@@ -25,7 +25,7 @@
 % }
 
 <%INIT>
-use Iodef::Pb::Simple;
+use Iodef::Pb::Simple qw/iodef_normalize_restriction/;
 use CIF qw/generate_uuid_random/;
 use Compress::Snappy;
 use MIME::Base64;
@@ -84,7 +84,7 @@ if($#datas < $max_submissions){
             guid            => $guid,
             restriction     => $restriction,
             description     => $description,
-            impact          => $real_assessment,
+            assessment      => $real_assessment,
             address         => $data,
             protocol        => $protocol,
             portlist        => $portlist,
@@ -98,7 +98,7 @@ if($#datas < $max_submissions){
             carboncopy      => join(',',@$sharewith),
         };
         my $report = Iodef::Pb::Simple->new($hash);
-
+        
         my $subject = $real_assessment.' '.$description;
         my $msg = $report->encode();
         $msg = encode_base64(compress($msg));
@@ -122,6 +122,18 @@ if($#datas < $max_submissions){
                 push(@results,'Ticket contained bad-data (private address?), auto-rejected');
             } else {
                 # submit to CIF
+                my $altid = AlternativeIDType->new({
+                    IncidentID  => IncidentIDType->new({
+                        restriction => iodef_normalize_restriction($restriction),
+                        name        => RT->Config->Get('Organization'),
+                        instance    => RT->Config->Get('rtname'),
+                        content     => RT->Config->Get('WebURL').'Ticket/Display.html?id='.$ticket->Id(),
+                    }),
+                });
+    
+                my $incident = @{$report->get_Incident()}[0];
+                push(@{$incident->{'AlternativeID'}},$altid);
+                
                 $ret = $cli->new_submission({
                     guid    => $guid,
                     data    => $report->encode(),

@@ -233,6 +233,7 @@ sub network_info {
 
 sub ReportsByType {
     my $user = shift;
+    my $group = shift;
 
     my @called = caller();
     my $type = $called[1];
@@ -241,18 +242,23 @@ sub ReportsByType {
     my $category = $t[$#t-1];
 
     my $reports = RT::Tickets->new($user);
-    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open') AND 'CF.{Confidence}' IS NOT NULL AND 'CF.{Assessment Impact}' IS NOT NULL AND 'CF.{Address}' IS NOT NULL";
+    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open') AND 'CF.{Confidence}' IS NOT NULL AND 'CF.{Assessment}' IS NOT NULL AND 'CF.{Address}' IS NOT NULL";
+    if($group){
+        $query .= " AND 'CF.{Constituency}' = '".lc($group)."'";
+    }
+
     $reports->FromSQL($query);
     $reports->OrderByCols({FILED => 'id', ORDER => 'DESC'});
     
     my $array;
+    my $x = 0;
     while(my $r = $reports->Next()){
         warn $r->id();
         push(@$array,$r->IODEF());
+        #last if($x++ == 5);
     }
     return unless($#{$array} > -1);
     return($array);
-    
 }
 
 {

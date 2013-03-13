@@ -124,7 +124,7 @@ cf%>-Values" /><div id
         <td><b>Restriction</b></td>
         <td>
         <select name='restriction'>
-% my $d_restriction = uc($rmap->{'default'});
+% my $d_restriction = ($rmap->{'default'}) ? uc($rmap->{'default'}) : '';
 % foreach my $restriction (keys %$rmap){
 % $restriction = uc($restriction);
 % next if($restriction eq 'DEFAULT');
@@ -181,9 +181,9 @@ $cf->Load('ReportDescription');
 $cf = $cf->Id();
 
 my $rmap = RT->Config->Get('CIFMinimal_RestrictionMapping');
-unless($rmap){
+unless(keys(%$rmap)){
     $rmap = {
-        'default'         => 'private',
+        'default'         => 'need-to-know',
         'need-to-know'    => 'need-to-know',
         'private'         => 'private',
         'public'          => 'public',
