@@ -2,7 +2,7 @@
 <& /Elements/ListActions, actions => \@results &>
 
 % if($#submitted > -1){
-% if($#submitted == 0){
+% if($#submitted == 0 && !$failed){
 % my $url = '3;url='.RT->Config->Get('WebURL')."Minimal/Display.html?id=".$submitted[0];
 <meta http-equiv="refresh" content="<% "$url" %>" />
 % } else {  
@@ -68,11 +68,15 @@ $ARGS{$constituency_field} = $group;
 
 my $real_assessment = $assessment;
 $real_assessment =~ s/\/\S+$//;
+
+# clean this up, in case someone space delimits
+$data =~ s/\s+/,/g;
 my @datas = split(/,/,$data);
 
 $sharewith = [$sharewith] unless(ref($sharewith) eq 'ARRAY');
 
 my @submitted;
+my $failed = 0;
 my %entered;
 if($#datas < $max_submissions){
     foreach $data (@datas){
@@ -119,7 +123,9 @@ if($#datas < $max_submissions){
             );
             $ticket->Comment(Content => $ARGS{'ReferenceDescription'});
             if($ticket->Status() eq 'rejected'){
-                push(@results,'Ticket contained bad-data (private address?), auto-rejected');
+                push(@results,'Ticket contained bad-data ('.$data.'), auto-rejected');
+                push(@results,'This could be due to bad formatting, or an invalid address was entered (private, or otherwise)');
+                $failed = 1;
             } else {
                 # submit to CIF
                 my $altid = AlternativeIDType->new({
