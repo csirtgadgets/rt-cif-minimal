@@ -232,8 +232,12 @@ sub network_info {
 }
 
 sub ReportsByType {
-    my $user = shift;
-    my $group = shift;
+    my $user    = shift;
+    my $group   = shift;
+    my $limit   = shift;
+    
+    return if($limit && $limit !~ /^\d+$/);
+    return if($group && $group !~ /^[a-zA-Z0-9.\-_]+\.[a-z]{2,6}$/);
 
     my @called = caller();
     my $type = $called[1];
@@ -246,16 +250,17 @@ sub ReportsByType {
     if($group){
         $query .= " AND 'CF.{Constituency}' = '".lc($group)."'";
     }
+    if($limit){
+       $reports->RowsPerPage($limit);
+    }
 
     $reports->FromSQL($query);
-    $reports->OrderByCols({FILED => 'id', ORDER => 'DESC'});
-    
+    $reports->OrderByCols({FIELD => 'id', ORDER => 'DESC'});
+
     my $array;
     my $x = 0;
     while(my $r = $reports->Next()){
-        warn $r->id();
-        push(@$array,$r->IODEF());
-        #last if($x++ == 5);
+        push(@$array,@{$r->IODEF()});
     }
     return unless($#{$array} > -1);
     return($array);

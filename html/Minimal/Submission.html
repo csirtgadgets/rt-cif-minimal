@@ -26,7 +26,7 @@
 
 <%INIT>
 use Iodef::Pb::Simple qw/iodef_normalize_restriction/;
-use CIF qw/generate_uuid_random/;
+use CIF qw/generate_uuid_random generate_uuid_ns/;
 use Compress::Snappy;
 use MIME::Base64;
 use CIF::Client;
@@ -83,6 +83,7 @@ if($#datas < $max_submissions){
         $data =~ s/[ \t]+$//g;
         $data =~ s/^[ \t]+//g;
         $data = lc($data);
+        my $source = RT->Config->Get('Organization');
         my $hash = {
             id              => generate_uuid_random(),
             guid            => $guid,
@@ -92,19 +93,17 @@ if($#datas < $max_submissions){
             address         => $data,
             protocol        => $protocol,
             portlist        => $portlist,
-            source          => $session{'CurrentUser'}->EmailAddress(),
-            contact         => {
-                name            => $session{'CurrentUser'}->RealName(),
-                email           => $session{'CurrentUser'}->EmailAddress(),
-            },
+            source          => $source,
             purpose         => $purpose,
             confidence      => $confidence,
             carboncopy      => join(',',@$sharewith),
         };
         my $report = Iodef::Pb::Simple->new($hash);
-        
+        $report = [ $report ] unless(ref($report) eq 'ARRAY');
+         
         my $subject = $real_assessment.' '.$description;
-        my $msg = $report->encode();
+        
+        my $msg = @{$report}[0]->encode();
         $msg = encode_base64(compress($msg));
         $msg = 'application/base64+snappy+pb+iodef'."\n".$msg;
 
@@ -136,20 +135,23 @@ if($#datas < $max_submissions){
                         content     => RT->Config->Get('WebURL').'Ticket/Display.html?id='.$ticket->Id(),
                     }),
                 });
-    
-                my $incident = @{$report->get_Incident()}[0];
-                push(@{$incident->{'AlternativeID'}},$altid);
                 
-                $ret = $cli->new_submission({
-                    guid    => $guid,
-                    data    => $report->encode(),
-                });
-                $ret = $cli->submit($ret);
-                if($ret =~ /^ERROR/){
-                    $ticket->SetStatus('rejected');
-                    push(@results,$ret.', contact your administrator');
-                    last;
-                } else {
+                my $orig_report = @{$report}[0];
+                my $incident = @{$orig_report->get_Incident()}[0];
+                push(@{$incident->{'AlternativeID'}},$altid);
+                foreach my $r (@$report){
+                    $ret = $cli->new_submission({
+                        guid    => $guid,
+                        data    => $r->encode(),
+                    });
+                    $ret = $cli->submit($ret);
+                    if($ret =~ /^ERROR/){
+                        $ticket->SetStatus('rejected');
+                        push(@results,$ret.', contact your administrator');
+                        $failed = 1;
+                    }
+                }
+                unless($failed){
                     $entered{$data} = 1;
                     push(@submitted,$ticket->Id());
                     my $rr = 'Ticket '.$ticket->Id().' Created -- '.$ticket->Subject();

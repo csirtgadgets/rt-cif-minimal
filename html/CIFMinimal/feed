@@ -3,18 +3,42 @@ require RT::CIFMinimal;
 use MIME::Base64;
 use Compress::Snappy;
 use Data::Dumper;
+use CIF qw/is_uuid generate_uuid_ns generate_uuid_random debug/;
+use CIF::Msg;
+use CIF::Msg::Feed;
+use DateTime;
 
-my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'},$group);
-$array = [ map { encode_base64(compress($_->encode())) } @$array ];
-$array = join("\n",@$array);
-$array = 'application/base64+snappy+pb+iodef'."\n".$array;
+my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'},$group,$limit);
+
+my $feed = '';
+
+if(defined($array)){
+    $array = [ map { encode_base64(compress($_->encode())) } @$array ];
+
+    my $dt = DateTime->from_epoch(epoch => time());
+    $dt = $dt->ymd().'T'.$dt->hms().'Z';
+
+    $feed = FeedType->new({
+        version     => $CIF::VERSION,
+        ReportTime  => $dt,
+        description => $group,
+        data        => $array,
+        uuid        => generate_uuid_random(),
+        guid        => generate_uuid_ns($group),
+    });
+
+    $feed = 'application/cif'."\n".encode_base64(compress($feed->encode()));
+} else {
+    $feed = 'missing group flag';
+}
 
 $r->content_type('text/plain');
-$m->out($array);
+$m->out($feed);
 
 $m->abort();
 </%INIT>
 
 <%ARGS>
 $group => 'everyone'
+$limit  => undef
 </%ARGS>
