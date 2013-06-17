@@ -1,6 +1,6 @@
 package RT::CIFMinimal;
 
-our $VERSION = '0.99_02';
+our $VERSION = '0.99_03';
 
 use 5.008008;
 use warnings;
