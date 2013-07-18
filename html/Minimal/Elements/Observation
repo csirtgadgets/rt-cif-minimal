@@ -57,7 +57,7 @@ window.onload = hide_me;
         <td>
             <input onBlur=show_me(this) type='text' size=80 name="data" value="<%$data%>" title="ip's, domains, urls"/><br>
             <i>multiple datapoints (<b>server-max: <%$max_submissions%></b>) can be entered using csv as long as they're both <b><% $assessment %></b> related<br>
-            and of the same data-type (eg: 192.168.1.1,192.168.1.2 OR example1.com,example2.com etc)</i>
+            and of the same data-type (eg: 192.168.1.1,192.168.1.2 OR example1.com,example2.com OR http://example.com/1.htm,http://example2.com/2.htm etc)</i>
                 
         </td>
     </tr>
