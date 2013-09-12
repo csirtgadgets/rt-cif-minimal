@@ -16,8 +16,12 @@ my ($tab);
 my $tabs = { 
 	A 	=> { title => loc('Home'), 		path => 'Minimal/index.html', },
 	B 	=> { title => loc('New Observation'), 	path => 'Minimal/Observation.html' },
-    C   => { title => loc('Apikeys'), path => 'Minimal/Apikeys.html' },
+    C   => { title => loc('API Keys'), path => 'Minimal/Apikeys.html' },
 };
+
+#if(RT->Config->Get('CIFMinimal_ReferredKeys') || 1){
+#    $tabs->{'D'} = { title => loc('Referred API Keys'), path => 'Minimal/ReferredKeys.html' },
+#}
 
 if(my $help = RT->Config->Get('CIFMinimal_HelpUrl')){
     $tabs->{Z} = { title => loc('Help'), path => $help, }

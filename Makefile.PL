@@ -49,9 +49,8 @@ requires('Regexp::Common'               => '2.122');
 requires('Regexp::Common::net::CIDR'    => '0.02');
 requires('Net::Abuse::Utils'            => '0.10');
 requires('Net::CIDR'                    => '0.11');
-requires('Iodef::Pb::Simple'            => '0.17');
-requires('RT::IODEF'                    => '0.09_1');
-requires('CIF'                          => '0.99');
+requires('RT::IODEF'                    => '0.9901');
+requires('CIF'                          => '1.00');
 auto_install();
 
 tests("t/*.t t/*/*.t");

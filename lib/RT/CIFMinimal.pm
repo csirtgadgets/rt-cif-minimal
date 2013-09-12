@@ -1,10 +1,11 @@
 package RT::CIFMinimal;
 
-our $VERSION = '1.0.0-rc.1';
-
 use 5.008008;
 use warnings;
 use strict;
+
+our $VERSION = '0.9901';
+$VERSION = eval $VERSION;  # see L<perlmodstyle>
 
 use Net::Abuse::Utils qw(:all);
 use Regexp::Common qw/net URI/;
@@ -383,34 +384,3 @@ wrap 'RT::User::Create',
     }
 }
 1;
-
-__END__
-=head1 NAME
-
-RT::CIFMinimal - Perl extension for RT+IR integration with CIF
-
-=head1 DESCRIPTION
-
-This module wraps a work-flow friendly UI around CIF using the basic components found in RT.
-
-=head1 SEE ALSO
-
-  http://code.google.com/p/collective-intelligence-framework
-  XML::IODEF
-  XML::IODEF::Simple
-
-=head1 AUTHOR
-
-Wes Young, E<lt>wes@barely3am.comE<gt>
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2011 REN-ISAC and The Trustees of Indiana University
-Copyright (C) 2011 by Wes Young
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.10.0 or,
-at your option, any later version of Perl 5 you may have available.
-
-
-=cut
