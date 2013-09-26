@@ -4,8 +4,11 @@ use 5.008008;
 use warnings;
 use strict;
 
-our $VERSION = '0.9901';
+our $VERSION = '0.9902';
 $VERSION = eval $VERSION;  # see L<perlmodstyle>
+
+# a work-around for now
+use lib '/opt/cif/lib';
 
 use Net::Abuse::Utils qw(:all);
 use Regexp::Common qw/net URI/;
