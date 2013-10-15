@@ -1,3 +1,4 @@
+<h1> Group Mappings </h1>
 % if(@sorted){
 % $m->out($table);
 % }

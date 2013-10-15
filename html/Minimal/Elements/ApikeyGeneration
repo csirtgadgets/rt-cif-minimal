@@ -4,7 +4,10 @@
         <form method="post">
 <table>
     <tr>
-        <td><b>Key Description<b></td>
+        <td>
+            <b>Key Description</b><br>
+            <i>if generating for another trusted<br> user, use their email address</i>
+        </td>
         <td><input type='text' name='key_description' size=30 value='myapp'/></td>
     </tr>
     <tr>
@@ -35,6 +38,17 @@
         </td>
     </tr>
     <tr>
+        <td>
+            <b>Query Restriction</b><br>
+            <i>optional, used to generate specialized<br>keys for specific data feeds</i>
+        <td align="right">
+            <select name="restrictions">
+% foreach (@access_types){
+                <option value='<% $_ %>'><% $_ %></option>
+% }
+        </td>
+    </tr>
+    <tr>
         <td></td>
         <td>
             <& /Elements/Submit, Name => 'GenerateKey', Label => loc('Generate Key') &>
@@ -54,4 +68,5 @@ $GenerateKey => undef
 $key_description => undef
 @results => undef
 %groups => undef
+@access_types => undef
 </%ARGS>

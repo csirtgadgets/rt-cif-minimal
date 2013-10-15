@@ -12,6 +12,13 @@
                 </tr>
             </table>
         </td>
+        <td>
+            <table>
+                <tr>
+                    <td><b>Restrictions</b></td>
+                </tr>
+            </table>
+        </td>
     </tr>
 % }
 % foreach my $r (@recs){
@@ -37,6 +44,16 @@
 % }
             </table>
         </td>
+        <td>
+            <table>
+% foreach ($r->restrictions()){
+% my $t = $r_map->{$_->access()} || '';
+                <tr valign="top">
+                    <td><% $t %></td>
+                </tr>
+% }
+            </table>
+        </td>
         </form>
     </tr>
 % }
@@ -44,13 +61,21 @@
 
 <%init>
 use CIF qw/generate_uuid_ns/;
+use Digest::SHA1 qw/sha1_hex/;
+
 my %group_map;
 foreach (keys %groups){
     $group_map{generate_uuid_ns($_)} = $_;
+}
+
+my $r_map = {};
+foreach my $x (@access_types){
+    $r_map->{sha1_hex($x)} = $x;
 }
 </%init>
 
 <%ARGS>
 @recs   => undef
 %groups => undef
+@access_types => undef
 </%ARGS>

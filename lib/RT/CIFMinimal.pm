@@ -4,7 +4,7 @@ use 5.008008;
 use warnings;
 use strict;
 
-our $VERSION = '0.9902';
+our $VERSION = '0.9903';
 $VERSION = eval $VERSION;  # see L<perlmodstyle>
 
 # a work-around for now
@@ -170,6 +170,7 @@ sub generate_apikey {
     my $key_desc        = $args->{'description'};
     my $default_guid    = $args->{'default_guid'};
     my $add_groups      = $args->{'groups'};
+    my $restrictions    = $args->{'restrictions'};
 
     return unless($user && ref($user) eq 'RT::User');
 
@@ -207,10 +208,11 @@ sub generate_apikey {
         }
     }
     my $id = $profile->user_add({
-        userid          => $user->EmailAddress() || $user->Name(),
-        description     => $key_desc,
-        default_group   => $default_guid,
-        groups          => join(',',@a_groups),
+        userid              => $user->EmailAddress() || $user->Name(),
+        description         => $key_desc,
+        default_group       => $default_guid,
+        groups              => join(',',@a_groups),
+        restricted_access   => $restrictions,
     });
     return($id); 
 }

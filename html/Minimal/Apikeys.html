@@ -1,17 +1,19 @@
 <& Elements/Header, Title => loc('Apikeys') &>
 <& /Elements/ListActions, actions => \@results &>
 
-<& Elements/ApikeyGeneration, 
-    groups  => \%group_map,
-    %ARGS 
+<& Elements/ApikeyGeneration,
+    groups          => \%group_map,
+    access_types    => \@access_types,
+    %ARGS
 &>
 
 % if(@recs){
 <h1>CIF API keys</h1>
-<& Elements/ApikeyDisplay, 
-    recs    => \@recs,
-    groups  => \%group_map,
-    %ARGS 
+<& Elements/ApikeyDisplay,
+    recs            => \@recs,
+    groups          => \%group_map,
+    access_types    => \@access_types,
+    %ARGS
 &>
 % }
 
@@ -53,12 +55,13 @@ if($GenerateKey){
     unless($found){
         push(@results,'default group must be in your Groups selection');
     } else {
-        
+
         my $id = RT::CIFMinimal::generate_apikey({
             user            => $user,
             description     => $key_description,
             default_guid    => $default_group,
             groups          => $add_groups,
+            restrictions    => $restrictions,
         });
         if($id){
             push(@results,'key '.$id->uuid().' successfully generated');
@@ -92,4 +95,6 @@ $key_description => undef
 @results => undef
 $default_group => undef
 $add_groups => undef
+$restrictions => undef
+@access_types => ('none','infrastructure','domain','url','email','malware')
 </%ARGS>
