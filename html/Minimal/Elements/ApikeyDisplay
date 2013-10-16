@@ -61,7 +61,7 @@
 
 <%init>
 use CIF qw/generate_uuid_ns/;
-use Digest::SHA1 qw/sha1_hex/;
+use Digest::SHA qw/sha1_hex/;
 
 my %group_map;
 foreach (keys %groups){
@@ -70,7 +70,10 @@ foreach (keys %groups){
 
 my $r_map = {};
 foreach my $x (@access_types){
-    $r_map->{sha1_hex($x)} = $x;
+    my @bits = split(/\//,$x);
+    my $feed = join(' ',reverse(@bits));
+    $feed .= ' feed';
+    $r_map->{sha1_hex($feed)} = $x;
 }
 </%init>
 

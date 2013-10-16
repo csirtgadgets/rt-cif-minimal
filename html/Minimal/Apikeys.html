@@ -26,22 +26,34 @@
 require RT::CIFMinimal;
 my $user = $session{'CurrentUser'}->UserObj();
 
+my @access_types = (
+    'infrastructure/malware','infrastructure/botnet','infrastructure/phishing','infrastructure/scan','infrastructure/suspicious',
+    'domain/malware','domain/botnet','domain/phishing','domain/suspicious','domain/spam',
+    'url/botnet','url/malware','url/phishing',
+    'malware/md5','malware/md5',
+    'email/phishing','email/spam'
+);
+
+@access_types = sort { $a cmp $b } @access_types;
+
 my $g = $user->OwnGroups();
 my %group_map;
+my $high = 1000;
 while(my $grp = $g->Next()){
     next unless($grp->Name() =~ /^DutyTeam (\S+)/);
     my $guid = lc($1);
-    my $priority = $grp->FirstCustomFieldValue('CIFGroupPriority');
+    my $priority = $grp->FirstCustomFieldValue('CIFGroupPriority') || $high;
     $group_map{$guid} = $priority;
 }
-my $high = 1000;
+
 $group_map{'everyone'} = $high;
 foreach (keys %group_map){
     unless($group_map{$_}){
         $group_map{$_} = $high--;
     }
 }
-my @sorted = sort { $group_map{$a} <=> $group_map{$b} } keys(%group_map);
+my @sorted = sort { $group_map{$a} cmp $group_map{$b} } keys(%group_map);
+$restrictions = join(',',@$restrictions) if($restrictions && (ref($restrictions) eq 'ARRAY'));
 
 if($GenerateKey){
     my $found = 0;
@@ -55,7 +67,7 @@ if($GenerateKey){
     unless($found){
         push(@results,'default group must be in your Groups selection');
     } else {
-
+        $restrictions = undef if($restrictions && $restrictions eq 'none');
         my $id = RT::CIFMinimal::generate_apikey({
             user            => $user,
             description     => $key_description,
@@ -96,5 +108,5 @@ $key_description => undef
 $default_group => undef
 $add_groups => undef
 $restrictions => undef
-@access_types => ('none','infrastructure','domain','url','email','malware')
+
 </%ARGS>

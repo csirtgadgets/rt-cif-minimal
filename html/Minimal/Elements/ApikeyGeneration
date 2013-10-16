@@ -39,10 +39,10 @@
     </tr>
     <tr>
         <td>
-            <b>Query Restriction</b><br>
-            <i>optional, used to generate specialized<br>keys for specific data feeds</i>
+            <b>Access Restriction</b><br>
+            <i>optional, used to generate specialized<br>keys for specific data feeds<br>leave un-selected for full access</i>
         <td align="right">
-            <select name="restrictions">
+            <select name="restrictions" multiple="multiple" size="7">
 % foreach (@access_types){
                 <option value='<% $_ %>'><% $_ %></option>
 % }

@@ -188,11 +188,11 @@ sub generate_apikey {
     while(my $grp = $g->Next()){
         next unless($grp->Name() =~ /^DutyTeam (\S+)/);
         my $guid = lc($1);
-        my $priority = $grp->FirstCustomFieldValue('CIFGroupPriority');
+        my $priority = $grp->FirstCustomFieldValue('CIFGroupPriority') || 0;
         $group_map{$guid} = $priority;
     }
     $group_map{'everyone'} = 1000;
-    my @sorted = sort { $group_map{$a} <=> $group_map{$b} } keys(%group_map);
+    my @sorted = sort { $group_map{$a} cmp $group_map{$b} } keys(%group_map);
     if($default_guid){
         $default_guid = $sorted[0] unless(exists($group_map{$default_guid}));
     } else {
