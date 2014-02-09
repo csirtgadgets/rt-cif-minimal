@@ -28,7 +28,7 @@ sub IsApplicable {
             last;
         }
         if($arg eq 'url'){
-            $regex = qr/^https?\:\/\/[a-zA-Z0-9-.]+\.[a-z]{2,5}/;
+            $regex = qr/^https?\:\/\/([a-zA-Z0-9-.]+\.[a-z]{2,8}|\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)/;
             last;
         }
     }

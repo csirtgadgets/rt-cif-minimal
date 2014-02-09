@@ -4,7 +4,7 @@ use 5.008008;
 use warnings;
 use strict;
 
-our $VERSION = '0.9903';
+our $VERSION = '1.0';
 $VERSION = eval $VERSION;  # see L<perlmodstyle>
 
 # a work-around for now

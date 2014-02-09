@@ -1,5 +1,6 @@
-1.0.0-rc.4  2013-10
+1.0.0  2014-02-09
     - added restricted access keys
+    - fixed regex bug in CIFMinimal_Stale condition
 
 1.0.0-rc.3  2013-09-26
     - bugfix to pathing
