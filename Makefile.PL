@@ -35,8 +35,8 @@ version_from('lib/RT/CIFMinimal.pm');
 
 { # check RT version
     my @v = split /\./, "$RT::VERSION";
-    unless ($v[0]>=3 && $v[1]>=8 && ($v[2]>=1 || $v[2]eq'HEAD')) {
-        die "RT-CIFMinimal and newer needs RT 3.8.10 at least, you have $RT::VERSION";
+    unless ($v[0]>=4 && $v[1]>=2 && ($v[2]>=1 || $v[2]eq'HEAD')) {
+        die "RT-CIFMinimal and newer needs RT 4.2.1 at least, you have $RT::VERSION";
     }
 }
 
@@ -49,8 +49,7 @@ requires('Regexp::Common'               => '2.122');
 requires('Regexp::Common::net::CIDR'    => '0.02');
 requires('Net::Abuse::Utils'            => '0.10');
 requires('Net::CIDR'                    => '0.11');
-requires('RT::IODEF'                    => '0.9901');
-requires('CIF'                          => '1.00');
+requires('CIF::SDK'                     => '0.00_22');
 auto_install();
 
 tests("t/*.t t/*/*.t");
