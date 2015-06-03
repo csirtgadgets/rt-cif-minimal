@@ -2,9 +2,8 @@
 % if(@recs){
     <tr valign="top">
         <td></td>
-        <td><b>Key</b></td>
+        <td><b>Token</b></td>
         <td><b>Description</b></td>
-        <td><b>Created</b></td>
         <td>
             <table>
                 <tr>
@@ -12,73 +11,33 @@
                 </tr>
             </table>
         </td>
-        <td>
-            <table>
-                <tr>
-                    <td><b>Restrictions</b></td>
-                </tr>
-            </table>
-        </td>
     </tr>
-% }
 % foreach my $r (@recs){
     <tr valign="top">
         <form method="post">
         <td><& /Elements/Submit, Name => 'PurgeKey', Label => loc('Purge Key') &></td>
-        <td><input type='hidden' name='uuid' value='<%$r->uuid()%>'><%$r->uuid()%></td>
-        <td><%$r->description() || 'None'%></td>
-        <td><%$r->created()%></td>
+        <td><input type='hidden' name='token' value='<%$r->{'token'}%>'><%$r->{'token'}%></td>
+        <td><%$r->{'description'} || 'None'%></td>
         <td>
             <table>
-% foreach ($r->groups()){
-% my $g = $group_map{$_->guid()};
-%# $g = ($_->default_guid()) ? $g.' default' : $g;
-% my $isDefault = ($_->default_guid()) ? "default" : '';
-                <tr valign="top">
-% if($_->default_guid()){
-                    <td><b><i><%$g%></b></i></td>
-% } else {
-                    <td><%$g%></td>
-% }
+            	<tr>
+% foreach my $g (@{$r->{'groups'}}){
+                    <td><% $g %></td>
                 </tr>
-% }
-            </table>
-        </td>
-        <td>
-            <table>
-% foreach ($r->restrictions()){
-% my $t = $r_map->{$_->access()} || '';
-                <tr valign="top">
-                    <td><% $t %></td>
-                </tr>
-% }
-            </table>
-        </td>
-        </form>
+        
+% }			
+			</table>
+		</td>
+			
+		</form>
     </tr>
+% }
 % }
 </table>
 
 <%init>
-use CIF qw/generate_uuid_ns/;
-use Digest::SHA qw/sha1_hex/;
-
-my %group_map;
-foreach (keys %groups){
-    $group_map{generate_uuid_ns($_)} = $_;
-}
-
-my $r_map = {};
-foreach my $x (@access_types){
-    my @bits = split(/\//,$x);
-    my $feed = join(' ',reverse(@bits));
-    $feed .= ' feed';
-    $r_map->{sha1_hex($feed)} = $x;
-}
 </%init>
 
 <%ARGS>
 @recs   => undef
-%groups => undef
-@access_types => undef
 </%ARGS>

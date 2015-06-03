@@ -1,21 +1,25 @@
 package RT::CIFMinimal;
 
-use 5.008008;
 use warnings;
 use strict;
 
-our $VERSION = '1.0';
+our $VERSION = '2.0';
 $VERSION = eval $VERSION;  # see L<perlmodstyle>
 
 # a work-around for now
-use lib '/opt/cif/lib';
+use lib '/opt/cif/lib/perl5';
 
 use Net::Abuse::Utils qw(:all);
 use Regexp::Common qw/net URI/;
 use Net::CIDR;
-use CIF::Profile;
-require CIF::Client;
-use Iodef::Pb::Format;
+use CIF::SDK::Client qw/parse_config/;
+use RT::CIF_Hash;
+use CIF::StorageFactory;
+use CIF::SDK::FormatFactory;
+
+my $storage = CIF::StorageFactory->new_plugin({ 
+    plugin => 'elasticsearch'
+});
 
 my @ipv4_private = (
     "0.0.0.0/8",
@@ -39,10 +43,10 @@ sub cif_submit {
     my $args = shift;
     
     my $report  = $args->{'report'};
-    my $guid    = $args->{'guid'} || 'everyone';
+    my $guid    = $args->{'group'} || 'everyone';
 
-    my ($err,$ret) = CIF::Client->new({
-        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
+    my ($err,$ret) = CIF::SDK::Client->new({
+        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif.yml',
     });
     my $cli = $ret;
     $ret = $cli->new_submission({
@@ -56,85 +60,61 @@ sub cif_submit {
 sub cif_data {
     my $args = shift;
     
-    my $fields  = $args->{'fields'} || 'restriction,guid,severity,confidence,address,rdata,portlist,protocol,impact,description,detecttime,alternativeid_restriction,alternativeid';
+    my $fields  = $args->{'fields'} || 'tlp,group,confidence,observable,rdata,portlist,protocol,tags,description,reporttime';
     my $q       = $args->{'q'}      || $args->{'query'};
     my $nolog   = $args->{'nolog'}  || 0;
     my $limit   = $args->{'limit'}  || 25;
     my $results = $args->{'results'};
     my $user    = $args->{'user'};
-    return unless($q);
-
-    my ($err,$ret) = CIF::Client->new({
-        config          => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
-    });
-    return $err if($err);
     
-    my $client = $ret;
-   
-    $ret = user_list($user);
-    unless($ret && @{$ret}[0]->uuid()){
+    return unless($q);
+    my ($ret,$err);
+    my $token = user_list($user);
+    
+    my $client = CIF::SDK::Client->new({
+        remote  => 'https://localhost', # TODO
+        verify_ssl => 0,
+    });
+    
+    unless($token){
         # generate apikey
-        my $id = generate_apikey({ user => $user, description => 'generated automatically via RT' });
-        unless($id){
+        $token = generate_apikey({ user => $user, description => 'generated automatically via RT' });
+        unless($token){
             push(@$results, 'unable to automatically generate an apikey, please contact your administrator');
             $RT::Logger->error('unable to generate an apikey for: '.$user->EmailAddress());
             return;
         } else {
-            $client->set_apikey($id);
-            push(@$results,'default WebUI apikey '.$id->uuid().' automatically generated');
+            $client->{'token'} = $token;
+            push(@$results,'default WebUI apikey '.$token.' automatically generated');
         }
     } else {
-        $client->set_apikey(@{$ret}[0]->uuid());
+        $client->{'token'} = @{$token}[0]->{'token'};
     }
 
     my @res;
     my @array = split(/,/,$q);
-    ($err,$ret) = $client->search({
-        query   => \@array,
-        nolog   => $nolog,
-        limit   => $limit,
+    
+    warn $q;
+    
+    ($ret, $err) = $client->search({
+        observable  => $q,
+        nolog       => 0,
+        limit       => $limit,
     });
+
+    my @html;
     unless($ret){
         push(@$results,'no results...');
         return;
-    }
-    my @html;
-    foreach my $feed (0 ... $#{$ret}){
-        # stolen from bin/cif command, line ~245   
-        my $x = $feed;
-        $feed = @{$ret}[$feed];
-        next unless($feed->get_data());
-            my $t = Iodef::Pb::Format->new({
-                config              => $client->get_global_config(),
-                format              => 'Html',
-                data                => $feed->get_data(),
-                
-                group_map           => $feed->get_group_map(),
-                restriction_map     => $feed->get_restriction_map(),
-                
-                confidence          => $feed->get_confidence(),
-                guid                => $feed->get_guid(),
-                uuid                => $feed->get_uuid(),
-                description         => $feed->get_description(),
-                restriction         => $feed->get_restriction(),
-                reporttime          => $feed->get_ReportTime(),
-                
-                # config stuff
-                sortby              => 'reporttime',
-                sortby_direction    => 'desc',
-                limit               => $limit,
-                round_confidence    => 1,
-                
-                # this is bound to cause us problems if not lined up properly
-                # with the original $feeds array, or if there is a gap in $feeds
-                # compared to the $q array, we should make sure the router returns
-                # are in-sync
-                query               => $array[$x],
-            });
-        push(@html,$t);
+    } else {
+        push(@html, @$ret);
     }
     
-    my $text = (@html && $#html > -1) ? join("\n",@html) : '<h3>No Results</h3>';
+    my $formatter = CIF::SDK::FormatFactory->new_plugin({ 
+        format => 'html', 
+    });
+    my $text = $formatter->process(\@html);
+
     return($text);
 }
 
@@ -142,43 +122,31 @@ sub user_list {
     my $user = shift;
     
     return unless($user && ref($user) eq 'RT::User');
-    
-    my ($err,$ret) = CIF::Profile->new({
-        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
-    });
-    
-    my @recs = $ret->user_list({user => $user->EmailAddress()});
-    return unless($recs[0] && $recs[0]->uuid());
-    return(\@recs);
+
+    my $rv = $storage->token_list({ Username => $user->EmailAddress() });
+    return $rv;
 }
     
 
 sub remove_key {
     my $key = shift;
     return unless($key);
-    
-    my ($err,$ret) = CIF::Profile->new({
-        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
+
+    my $rv = $storage->token_delete({
+        Token       => $key,
     });
-    
-    return $ret->remove($key);
+    return $rv;
 }
 
 sub generate_apikey {
     my $args            = shift;
     my $user            = $args->{'user'};
     my $key_desc        = $args->{'description'};
-    my $default_guid    = $args->{'default_guid'};
     my $add_groups      = $args->{'groups'};
     my $restrictions    = $args->{'restrictions'};
 
     return unless($user && ref($user) eq 'RT::User');
-
-    my ($err,$ret) = CIF::Profile->new({
-        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
-    });
-    return $err unless($ret);
-    my $profile = $ret;
+    
 
     my @a_groups = (ref($add_groups) eq 'ARRAY') ? @$add_groups : $add_groups;
 
@@ -193,13 +161,7 @@ sub generate_apikey {
     }
     $group_map{'everyone'} = 1000;
     my @sorted = sort { $group_map{$a} cmp $group_map{$b} } keys(%group_map);
-    if($default_guid){
-        $default_guid = $sorted[0] unless(exists($group_map{$default_guid}));
-    } else {
-        $default_guid = $sorted[0];
-    }
-    
-    ## TODO -- fix this
+
     unless($a_groups[0]){
         @a_groups = @sorted;
     } else {
@@ -207,14 +169,14 @@ sub generate_apikey {
             return unless(exists($group_map{$_}));
         }
     }
-    my $id = $profile->user_add({
-        userid              => $user->EmailAddress() || $user->Name(),
-        description         => $key_desc,
-        default_group       => $default_guid,
-        groups              => join(',',@a_groups),
-        restricted_access   => $restrictions,
+
+    my $rv = $storage->token_new({
+        Username        => $user->EmailAddress() || $user->Name(),
+        'read'          => 1,
+        description     => $key_desc,
+        groups          => \@a_groups,
     });
-    return($id); 
+    return $rv;
 }
 
 sub network_info {
@@ -252,7 +214,7 @@ sub ReportsByType {
     my $category = $t[$#t-1];
 
     my $reports = RT::Tickets->new($user);
-    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open') AND 'CF.{Confidence}' IS NOT NULL AND 'CF.{Assessment}' IS NOT NULL AND 'CF.{Address}' IS NOT NULL";
+    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open') AND 'CF.{confidence}' IS NOT NULL AND 'CF.{tags}' IS NOT NULL AND 'CF.{observable}' IS NOT NULL";
     if($group){
         $query .= " AND 'CF.{Constituency}' = '".lc($group)."'";
     }
@@ -266,9 +228,9 @@ sub ReportsByType {
     my $array;
     my $x = 0;
     while(my $r = $reports->Next()){
-        push(@$array,@{$r->IODEF()});
+        push(@$array,$r->cif_hash());
     }
-    return unless($#{$array} > -1);
+    return [] unless($#{$array} > -1);
     return($array);
 }
 
@@ -283,46 +245,6 @@ sub ReportsByType {
         return $cache{ $field } = $cf;
     }
 }
-
-use Hook::LexWrap;
-use Regexp::Common;
-use Regexp::Common::net::CIDR;
-
-# on OCFV create format storage
-require RT::ObjectCustomFieldValue;
-wrap 'RT::ObjectCustomFieldValue::Create',
-    pre => sub {
-        my %args = @_[1..@_-2];
-        my $cf = GetCustomField( 'Address' );
-        unless ( $cf && $cf->id ) {
-            $RT::Logger->crit("Couldn't load IP CF");
-            return;
-        }
-
-        return unless $cf->id == $args{'CustomField'};
-
-        for ( my $i = 1; $i < @_; $i += 2 ) {
-            next unless $_[$i] && $_[$i] eq 'Content';
-
-            my $arg = $_[++$i];
-            next if ($arg =~ /^\s*$RE{net}{CIDR}{IPv4}{-keep}\s*$/go );
-            my ($sIP, $eIP) = RT::IR::ParseIPRange( $arg );
-            unless ( $sIP && $eIP ) {
-                #$_[-1] = 0;
-                return;
-            }
-            $_[$i] = $sIP;
-
-            my $flag = 0;
-            for ( my $j = 1; $j < @_; $j += 2 ) {
-                next unless $_[$j] && $_[$j] eq 'LargeContent';
-                $flag = $_[++$j] = $eIP;
-                last;
-            }
-            splice @_, -1, 0, LargeContent => $eIP unless $flag;
-            return;
-        }
-    };
 
 eval "require RT::CIFMinimal_Vendor";
 die $@ if ($@ && $@ !~ qr{^Can't locate RT/CIFMinimal_Vendor.pm});

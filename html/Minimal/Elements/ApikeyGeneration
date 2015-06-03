@@ -24,31 +24,6 @@
             </select>
         </td>
     <tr>
-        <td>
-            <b>Default Group</b><br>
-            <i>What group this key's searches<br>should be exposed to</i>
-        </td>
-        <td align="right">
-            <select name="default_group">
-% foreach(@sorted){
-% my $selected = ($sorted[0] eq $_) ? " selected='selected'" : '';
-                <option value='<% $_ %>'<% $selected %>><% $_ %></option>
-% }
-            </select>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <b>Access Restriction</b><br>
-            <i>optional, used to generate specialized<br>keys for specific data feeds<br>leave un-selected for full access</i>
-        <td align="right">
-            <select name="restrictions" multiple="multiple" size="7">
-% foreach (@access_types){
-                <option value='<% $_ %>'><% $_ %></option>
-% }
-        </td>
-    </tr>
-    <tr>
         <td></td>
         <td>
             <& /Elements/Submit, Name => 'GenerateKey', Label => loc('Generate Key') &>
@@ -58,9 +33,8 @@
 
 
 <%INIT>
-use CIF qw/generate_uuid_ns/;
 my @sorted = sort { $groups{$a} <=> $groups{$b} } keys(%groups);
-my @guid = map { generate_uuid_ns($_) } @sorted;
+my @guid = map { $_ } @sorted;
 </%INIT>
 
 <%ARGS>

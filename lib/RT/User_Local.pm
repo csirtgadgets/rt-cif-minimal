@@ -8,9 +8,10 @@ return an array of the user's apikeys from CIF
 
 sub Apikeys {
     my $self = shift;
-    require CIF::WebAPI::APIKey;
-    my @recs = CIF::WebAPI::APIKey->search(uuid_alias => $self->EmailAddress());
-    return(\@recs);
+    #require CIF::WebAPI::APIKey;
+    #my @recs = CIF::WebAPI::APIKey->search(uuid_alias => $self->EmailAddress());
+    #return(\@recs);
+    return [];
 }
 
 =head2 Load
@@ -51,22 +52,24 @@ sub CheckGroups {
 
     if(my %map = RT->Config->Get('CIFMinimal_UserGroupMapping')){
         my $x = $ENV{$map{'EnvVar'}};
-        my @tags = split($map{'Pattern'},$x);
-        my $group_map = $map{'Mapping'};
-        foreach(keys %$group_map){
-            foreach my $g (@tags){
-                if($g eq $_){
-                    require RT::Group;
-                    my $y = RT::Group->new($RT::SystemUser);
-                    my ($ret,$err) = $y->LoadUserDefinedGroup($group_map->{$_});
-                    next if($y->HasMemberRecursively($self->PrincipalId));  
-                    RT::Logger->debug("adding user to group: $g");
-                    ($ret,$err) = $y->AddMember($self->PrincipalId);
-                    unless($ret){
-                        $RT::Logger->error("Couldn't add user to group: ".$y->Name());
-                        $RT::Logger->error($err);
-                        #$RT::Handle->Rollback();
-                        return(0);
+        if($x){
+            my @tags = split($map{'Pattern'}, $x);
+            my $group_map = $map{'Mapping'};
+            foreach(keys %$group_map){
+                foreach my $g (@tags){
+                    if($g eq $_){
+                        require RT::Group;
+                        my $y = RT::Group->new($RT::SystemUser);
+                        my ($ret,$err) = $y->LoadUserDefinedGroup($group_map->{$_});
+                        next if($y->HasMemberRecursively($self->PrincipalId));  
+                        RT::Logger->debug("adding user to group: $g");
+                        ($ret,$err) = $y->AddMember($self->PrincipalId);
+                        unless($ret){
+                            $RT::Logger->error("Couldn't add user to group: ".$y->Name());
+                            $RT::Logger->error($err);
+                            #$RT::Handle->Rollback();
+                            return(0);
+                        }
                     }
                 }
             }

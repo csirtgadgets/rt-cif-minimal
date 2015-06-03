@@ -1,36 +1,12 @@
 <%INIT>
 require RT::CIFMinimal;
-use MIME::Base64;
-use Compress::Snappy;
 use Data::Dumper;
-use CIF qw/is_uuid generate_uuid_ns generate_uuid_random debug/;
-use CIF::Msg;
-use CIF::Msg::Feed;
 use DateTime;
+use JSON::XS;
 
-my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'},$group,$limit);
+my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'}, $group, $limit);
 
-my $feed = '';
-
-if(defined($array)){
-    $array = [ map { encode_base64(compress($_->encode())) } @$array ];
-
-    my $dt = DateTime->from_epoch(epoch => time());
-    $dt = $dt->ymd().'T'.$dt->hms().'Z';
-
-    $feed = FeedType->new({
-        version     => $CIF::VERSION,
-        ReportTime  => $dt,
-        description => $group,
-        data        => $array,
-        uuid        => generate_uuid_random(),
-        guid        => generate_uuid_ns($group),
-    });
-
-    $feed = 'application/cif'."\n".encode_base64(compress($feed->encode()));
-} else {
-    $feed = 'missing group flag';
-}
+my $feed = JSON::XS->new->encode($array);
 
 $r->content_type('text/plain');
 $m->out($feed);

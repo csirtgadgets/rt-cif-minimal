@@ -217,16 +217,7 @@ foreach(keys %$groups){
 }
 my @sorted = sort { $groups->{$a} <=> $groups->{$b} } keys %$groups;
 
-my $share_with = RT->Config->Get('CIFMinimal_ShareWith') || {
-    leo         => {
-        description => 'Anonymized with Trusted Law Enforcement',
-        checked     => 1,
-    },
-    partners    => {
-        description => 'Anonymized with Trusted Mitigation Partners',
-        checked     => 1,
-    }
-};
+my $share_with = RT->Config->Get('CIFMinimal_ShareWith');
 
 my $confidence_url = RT->Config->Get('CIFMinimal_ConfidenceUrl');
 </%INIT>

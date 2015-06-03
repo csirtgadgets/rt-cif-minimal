@@ -1,45 +1,23 @@
-<& /Elements/PageLayout,
-    current_toptab => $current_toptab,
-    current_tab => $current_tab,
-    toptabs => $tabs,
-    topactions => $actions,
-    title => $Title
-&>
+<& /Elements/PageLayout, show_menu => 1 &>
 <a name="skipnav" id="skipnav" accesskey="8"></a>
-<%INIT>
 
-my $queue = RT::Queue->new($session{'CurrentUser'});
-$queue->Load('Incident Reports');
-my $queue_id = $queue->Id();
+<%init>
+my $build_selfservice_nav = sub {
+    my $username = '<span class="current-user">'
+                 . $m->interp->apply_escapes($session{'CurrentUser'}->Name, 'h')
+                 . '</span>';
+    my $about_me = Menu->child( preferences =>
+        title        => loc('Logged in as [_1]', $username),
+        escape_title => 0,
+        sort_order   => 99,
+    );
+	Menu->child( home => title => loc('Home'), path => '/Minimal/index.html' );
+	Menu->child( observables => title => loc('New Observation'), path => '/Minimal/Observation.html' );
+	Menu->child( tokens => title => loc('API Tokens'), path => '/Minimal/Apikeys.html' );
+	Menu->child( help => title => loc('Help'), path => RT->Config->Get('CIFMinimal_HelpUrl') );
+	
+    PageWidgets->child( 'search' => raw_html => $m->scomp('/Minimal/Elements/SearchBox') );
 
-my ($tab);
-my $tabs = { 
-	A 	=> { title => loc('Home'), 		path => 'Minimal/index.html', },
-	B 	=> { title => loc('New Observation'), 	path => 'Minimal/Observation.html' },
-    C   => { title => loc('API Keys'), path => 'Minimal/Apikeys.html' },
 };
-
-#if(RT->Config->Get('CIFMinimal_ReferredKeys') || 1){
-#    $tabs->{'D'} = { title => loc('Referred API Keys'), path => 'Minimal/ReferredKeys.html' },
-#}
-
-if(my $help = RT->Config->Get('CIFMinimal_HelpUrl')){
-    $tabs->{Z} = { title => loc('Help'), path => $help, }
-}
-
-if($session{'CurrentUser'}->HasRight( Right => 'ModifySelf', Object => $RT::System )) {
-    $tabs->{X} = { title => loc('Preferences'), path => 'Minimal/Prefs.html'};
-}
-
-
-my $actions = {
-	C => { html => $m->scomp('Search') }
-};
-
-</%INIT>
-<%ARGS>
-$Title => undef
-$current_toptab => undef
-$current_tab => undef
-</%ARGS>
-
+$build_selfservice_nav->();
+</%init>

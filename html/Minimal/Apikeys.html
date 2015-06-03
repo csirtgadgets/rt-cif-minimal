@@ -8,19 +8,12 @@
 &>
 
 % if(@recs){
-<h1>CIF API keys</h1>
+<h1>CIF Tokens</h1>
 <& Elements/ApikeyDisplay,
     recs            => \@recs,
-    groups          => \%group_map,
-    access_types    => \@access_types,
     %ARGS
 &>
 % }
-
-<& Elements/ApikeyDisplayGroups,
-    groups  => \%group_map,
-    %ARGS
-&>
 
 <%INIT>
 require RT::CIFMinimal;
@@ -57,37 +50,25 @@ $restrictions = join(',',@$restrictions) if($restrictions && (ref($restrictions)
 
 if($GenerateKey){
     my $found = 0;
-    if(ref($add_groups) eq 'ARRAY'){
-        foreach(@$add_groups){
-            $found = 1 if($_ eq $default_group);
-        }
+
+    $restrictions = undef if($restrictions && $restrictions eq 'none');
+    my $id = RT::CIFMinimal::generate_apikey({
+        user            => $user,
+        description     => $key_description,
+        groups          => $add_groups,
+    });
+    if($id){
+        push(@results,'key '.$id.' successfully generated');
     } else {
-        $found = 1 if($add_groups eq $default_group);
-    }
-    unless($found){
-        push(@results,'default group must be in your Groups selection');
-    } else {
-        $restrictions = undef if($restrictions && $restrictions eq 'none');
-        my $id = RT::CIFMinimal::generate_apikey({
-            user            => $user,
-            description     => $key_description,
-            default_guid    => $default_group,
-            groups          => $add_groups,
-            restrictions    => $restrictions,
-        });
-        if($id){
-            push(@results,'key '.$id->uuid().' successfully generated');
-        } else {
-            push(@results,'key generation failed');
-        }
+        push(@results,'key generation failed');
     }
 }
 
 if($PurgeKey){
-    if(RT::CIFMinimal::remove_key($uuid)){
-        push(@results,$uuid.' deleted');
+    if(RT::CIFMinimal::remove_key($token)){
+        push(@results,$token.' deleted');
     } else {
-        push(@results,'error trying to delete: '.$uuid);
+        push(@results,'error trying to delete: '.$token);
     }
 }
 
@@ -102,7 +83,7 @@ $session{'i'}++;
 <%ARGS>
 $GenerateKey => undef
 $PurgeKey => undef
-$uuid => undef
+$token => undef
 $key_description => undef
 @results => undef
 $default_group => undef

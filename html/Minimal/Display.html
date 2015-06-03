@@ -4,8 +4,8 @@
 <table width="100%" class="ticketsummary" >
     <tr>
         <td valign="top" width="50%" class="boxcontainer">
-            <&| /Widgets/TitleBox, title => loc('The Basics'), 
-                title_class=> 'inverse',  
+            <&| /Widgets/TitleBox, title => loc('The Basics'),
+                title_class=> 'inverse',
                 color => "#993333" &>
 	        <& /Ticket/Elements/ShowCustomFields, Ticket => $Ticket &>
             </&>
@@ -19,29 +19,13 @@
         </td>
     </tr>
 </table>
-% if(RT->Config->Get('CIFMinimal_CollectiveView')){
-<table width="100%" class="ticketsummary" >
-    <tr>
-        <td valign="bottom" width="75%" class="boxcontainer">
-            <&| /Widgets/TitleBox, title => loc("Collective Data"),
-                title_class=> 'inverse',
-                color => "#663366" &>
-% $m->out($cif_data);
-            </&>
-        </td>
-    </tr>
-</table>
-% }
 
 %#!!pape: selfservice_find_attachments.patch {{
-<& /Ticket/Elements/ShowHistory, 
-      Ticket => $Ticket, 
-      URIFile => "Display.html", 
+<& /Ticket/Elements/ClickToShowHistory,
+      Ticket => $Ticket,
       ShowHeaders => $ARGS{'ShowHeaders'},
-      DownloadableHeaders => 0,
-      AttachPath => "Attachment", 
-      Attachments => $attachments, 
-      UpdatePath => "Update.html",
+      DisplayPath    => RT->Config->Get('WebPath') ."/Minimal/Display.html?id=$id",
+      UpdatePath     => RT->Config->Get('WebPath') ."/Minimal/Update.html",
 &>
 %#!!pape: selfservice_find_attachments.patch }}
 
@@ -73,7 +57,7 @@ if ( $ARGS{'Attach'} ) {    # attachment?
         $file_path => $attachment,
     };
 }
-			
+
 unless ( $Ticket->Load( $id[0] ) ) {
     $m->comp( 'Error.html', Why => loc( "Couldn't load ticket '[_1]'", $id ) );
     $m->abort();
@@ -102,8 +86,8 @@ unless ( keys %{ $session{'Attachments'} } and $ARGS{'UpdateAttach'} ) {
     delete $session{'Attachments'};
 }
 
-my @cfupdates = ProcessTicketCustomFieldUpdates(ARGSRef => \%ARGS);
-push (@results, @cfupdates);
+#my @cfupdates = ProcessTicketCustomFieldUpdates(ARGSRef => \%ARGS);
+#push (@results, @cfupdates);
 
 #Update the status
 if((defined($ARGS{'Status'})) and $ARGS{'Status'} and ( $ARGS{'Status'} ne $Ticket->Status ) ){
@@ -131,18 +115,10 @@ if (@results) {
 
 my $Transactions = $Ticket->Transactions;
 
-my $attachments = $m->comp( '/Ticket/Elements/FindAttachments', Ticket => $Ticket );
+my $attachments = $m->comp( '/Ticket/Elements/ShowAttachments', Ticket => $Ticket );
 $m->callback(CallbackName => 'BeforeDisplay', Ticket => \$Ticket, ARGSRef => \%ARGS);
 
 my $cif_data;
-if(RT->Config->Get('CIFMinimal_CollectiveView')){   
-    $cif_data = RT::CIFMinimal::cif_data({
-        user    => $session{'CurrentUser'}->UserObj(),
-        q       => $Ticket->FirstCustomFieldValue('Address'),
-        nolog   => 1,
-        results => \@results,
-    });
-}
 
 </%INIT>
 

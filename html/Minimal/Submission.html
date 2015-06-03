@@ -5,15 +5,15 @@
 % if($#submitted == 0 && !$failed){
 % my $url = '3;url='.RT->Config->Get('WebURL')."Minimal/Display.html?id=".$submitted[0];
 <meta http-equiv="refresh" content="<% "$url" %>" />
-% } else {  
+% } else {
 % my $sc = RT::Tickets->new($session{'CurrentUser'});
 % foreach (@submitted){
 % $sc->Limit(FIELD => 'id', VALUE => $_, ENTRYAGGREGATOR => 'OR', OPPERATOR => '=');
 % }
-<& /Elements/CollectionList, 
+<& /Elements/CollectionList,
     title       => loc('Results'),
     Collection  => $sc,
-    Format      => $Format, 
+    Format      => $Format,
     Order       => @Order,
     OrderBy     => @OrderBy,
     Class       => 'RT::Tickets',
@@ -25,11 +25,10 @@
 % }
 
 <%INIT>
-use Iodef::Pb::Simple qw/iodef_normalize_restriction/;
-use CIF qw/generate_uuid_random generate_uuid_ns/;
-use Compress::Snappy;
-use MIME::Base64;
-use CIF::Client;
+use CIF::SDK qw/parse_config/;
+use CIF::SDK::Client;
+use JSON::XS;
+use RT::Ticket;
 
 unless($data){
     RT::Interface::Web::Redirect(RT->Config->Get('WebURL').'Minimal/Observation.html');
@@ -43,15 +42,19 @@ my $Format = qq{
 };
 
 my $max_submissions = RT->Config->Get('CIFMinimal_MaxSubmissions') || 15;
-my ($err,$ret) = CIF::Client->new({
-    config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif',
+
+
+my $config = parse_config(RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif.yml')->{'client'};
+
+
+my $cli = CIF::SDK::Client->new({
+    token		=> $config->{'token'},
+    remote		=> $config->{'remote'},
+    verify_ssl	=> 0,
+    timeout		=> $config->{'timeout'} || 120,
+    nolog		=> 1
 });
-if($err){
-    $RT::Logger->warning($err);
-    push(@results,'error loading client config, contact your administrator');
-    return;
-}
-my $cli = $ret;
+my $ret;
 
 # just in case someone tries to set it on their own
 # w/o the proper rights
@@ -59,8 +62,6 @@ my $d_confidence = RT->Config->Get('CIFMinimal_DefaultConfidence') || 85;
 if($confidence > $d_confidence){
     $confidence = $d_confidence unless($session{'CurrentUser'}->Privileged());
 }
-
-my $guid = $group;
 
 my $constituency_cf = RT::IR->CustomFields( 'Constituency', Queue => $Queue );
 my $constituency_field = 'Object-RT::Ticket--CustomField-' . $constituency_cf->id .'-Values';
@@ -83,43 +84,62 @@ if($#datas < $max_submissions){
         $data =~ s/[ \t]+$//g;
         $data =~ s/^[ \t]+//g;
         $data = lc($data);
-        my $source = RT->Config->Get('Organization');
-        my $hash = {
-            id              => generate_uuid_random(),
-            guid            => $guid,
-            restriction     => $restriction,
+        my $source = RT->Config->Get('WebDomain');
+        my $msg = {
+            group           => $group,
+            tlp     		=> $restriction,
             description     => $description,
-            assessment      => $real_assessment,
-            address         => $data,
+            tags      		=> $real_assessment,
+            observable      => $data,
             protocol        => $protocol,
             portlist        => $portlist,
-            source          => $source,
-            purpose         => $purpose,
+            provider        => $source,
             confidence      => $confidence,
-            carboncopy      => join(',',@$sharewith),
         };
-        my $report = Iodef::Pb::Simple->new($hash);
-        $report = [ $report ] unless(ref($report) eq 'ARRAY');
-         
-        my $subject = $real_assessment.' '.$description;
-        
-        my $msg = @{$report}[0]->encode();
-        $msg = encode_base64(compress($msg));
-        $msg = 'application/base64+snappy+pb+iodef'."\n".$msg;
 
-        $ARGS{'Subject'} = $subject;
-        $ARGS{'Queue'} = 'Incident Reports';
+        my $subject = $real_assessment.' '.$description;
+
         if($entered{$data}){
             # we call this the 'gabe' clause
             push(@results,'skipping duplicate: '.$data);
-        } else {
+        } elsif(RT::CIFMinimal::IsPrivateAddress($data)){
+        	push(@results, 'skipping, private ip address');
+       	} else {
             # create the internal ticket
-            my ($ticket,@res) = CreateTicket(
-                Content     => $msg, 
-                Attachments => $session{'Attachments'}, 
-                Status      => 'new',
-                %ARGS
-            );
+			my $ticket = RT::Ticket->new($session{'CurrentUser'});
+
+            my $id = $ticket->Create(
+            	Subject				=> $subject,
+            	Queue				=> 'Incident Reports',
+            	Status				=> 'new',
+            	Owner				=> $session{'CurrentUser'},
+            	%ARGS
+          	);
+
+          	my $cfs = RT::CustomFields->new($session{'CurrentUser'});
+			$cfs->LimitToQueue($ticket->Queue());
+			$cfs->Limit(FIELD => 'Description', VALUE => '_IODEF_Incident', OPERATOR => 'LIKE');
+
+          	my ($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Constituency',
+          		Value	=> $group,
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Share With',
+          		Value	=> join(',',@$sharewith)
+          	);
+
+			while (my $cf = $cfs->Next()){
+				($status,$err) = $ticket->AddCustomFieldValue(
+					Field	=> $cf->Name(),
+					Value	=> $msg->{$cf->Name()}
+				);
+			}
+
+          	my @res;
+
+
             $ticket->Comment(Content => $ARGS{'ReferenceDescription'});
             if($ticket->Status() eq 'rejected'){
                 push(@results,'Ticket contained bad-data ('.$data.'), auto-rejected');
@@ -127,30 +147,25 @@ if($#datas < $max_submissions){
                 $failed = 1;
             } else {
                 # submit to CIF
-                my $altid = AlternativeIDType->new({
-                    IncidentID  => IncidentIDType->new({
-                        restriction => iodef_normalize_restriction($restriction),
-                        name        => RT->Config->Get('Organization'),
-                        instance    => RT->Config->Get('rtname'),
-                        content     => RT->Config->Get('WebURL').'Ticket/Display.html?id='.$ticket->Id(),
-                    }),
-                });
-                
-                my $orig_report = @{$report}[0];
-                my $incident = @{$orig_report->get_Incident()}[0];
-                push(@{$incident->{'AlternativeID'}},$altid);
-                foreach my $r (@$report){
-                    $ret = $cli->new_submission({
-                        guid    => $guid,
-                        data    => $r->encode(),
-                    });
-                    $ret = $cli->submit($ret);
-                    if($ret =~ /^ERROR/){
-                        $ticket->SetStatus('rejected');
-                        push(@results,$ret.', contact your administrator');
-                        $failed = 1;
-                    }
+
+                $msg->{'altid'} = RT->Config->Get('WebURL').'Ticket/Display.html?id='.$ticket->Id();
+            	$msg->{'altid_tlp'} = 'red';
+                $ret = $cli->submit($msg);
+
+                if($sharewith){
+                	foreach my $p (@$sharewith){
+                		$msg->{'group'} = $p;
+                		use Data::Dumper;
+                		warn Dumper($msg);
+                		$ret = $cli->submit($msg);
+                	}
                 }
+                if($ret =~ /^ERROR/){
+                    $ticket->SetStatus('rejected');
+                    push(@results,$ret.', contact your administrator');
+                    $failed = 1;
+                }
+
                 unless($failed){
                     $entered{$data} = 1;
                     push(@submitted,$ticket->Id());
@@ -171,7 +186,6 @@ if($#datas < $max_submissions){
 <%ARGS>
 $sharewith => undef
 $group => undef
-$purpose => RT->Config->Get('CIFMinimal_DefaultPurpose') || 'mitigation'
 $data => undef
 $restriction => undef
 $description => undef
