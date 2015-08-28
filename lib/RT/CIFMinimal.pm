@@ -211,8 +211,8 @@ sub ReportsByType {
     my $group   = shift;
     my $limit   = shift;
     
-    return if($limit && $limit !~ /^\d+$/);
-    return if($group && $group !~ /^[a-zA-Z0-9.\-_]+\.[a-z]{2,6}$/);
+    return [] if($limit && $limit !~ /^\d+$/);
+    return [] if($group && $group !~ /^(everyone|[a-zA-Z0-9.\-_]+\.[a-z]{2,6})$/);
 
     my @called = caller();
     my $type = $called[1];
@@ -221,7 +221,7 @@ sub ReportsByType {
     my $category = $t[$#t-1];
 
     my $reports = RT::Tickets->new($user);
-    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open') AND 'CF.{confidence}' IS NOT NULL AND 'CF.{tags}' IS NOT NULL AND 'CF.{observable}' IS NOT NULL";
+    my $query = "Queue = 'Incident Reports' AND (Status = 'new' OR Status = 'open') AND 'CF.{Confidence}' IS NOT NULL AND 'CF.{Tags}' IS NOT NULL AND 'CF.{Observable}' IS NOT NULL";
     if($group){
         $query .= " AND 'CF.{Constituency}' = '".lc($group)."'";
     }
@@ -232,13 +232,14 @@ sub ReportsByType {
     $reports->FromSQL($query);
     $reports->OrderByCols({FIELD => 'id', ORDER => 'DESC'});
 
-    my $array;
+    my @array;
     my $x = 0;
     while(my $r = $reports->Next()){
-        push(@$array,$r->cif_hash());
+        push(@array,$r->cif_hash());
     }
-    return [] unless($#{$array} > -1);
-    return($array);
+    
+    return [] unless($#array > -1);
+    return(\@array);
 }
 
 {

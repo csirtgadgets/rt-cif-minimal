@@ -43,7 +43,27 @@ sub cif_hash {
     my $group = $tkt->FirstCustomFieldValue('Constituency') || $tkt->FirstCustomFieldValue('_RTIR_Constituency');
 
     my $restriction = $local_values->{'Restriction'}[0] || 'red';
-    $restriction = 'red' unless($restriction =~ /^(default|private|need-to-know|public)$/);
+    #$restriction = 'red' unless($restriction =~ /^(default|private|need-to-know|public)$/);
+    if($restriction =~ /^(default|private|need-to-know|public)$/){
+        for($restriction){
+            if(/^default$/){
+                $restriction = 'amber';
+                last;
+            }
+            if(/^need-to-know$/){
+                $restriction = 'amber';
+                last;
+            }
+            if(/^private$/){
+                $restriction = 'red';
+                last;
+            }
+            if(/^public$/){
+                $restriction = 'green';
+                last;
+            }
+        }
+    }
     my $alt_restriction = 'red';
     $alt_restriction = 'green' if($alt_restriction eq 'white');
 
@@ -52,11 +72,11 @@ sub cif_hash {
         provider    => $source,
         tlp         => $restriction,
         description => $tkt->Subject(),
-        tags        => $local_values->{'tags'}[0],
-        observable  => $local_values->{'observable'}[0],
-        protocol    => $local_values->{'protocol'}[0],
-        portlist    => $local_values->{'portlist'}[0],
-        confidence  => $local_values->{'confidence'}[0],
+        tags        => $local_values->{'Tags'}[0] || 'suspicious',
+        observable  => $local_values->{'Observable'}[0],
+        protocol    => $local_values->{'Protocol'}[0],
+        portlist    => $local_values->{'Portlist'}[0],
+        confidence  => $local_values->{'Confidence'}[0],
         reporttime  => $tkt->CreatedAsString(),
         altid       => RT->Config->Get('WebURL').'Ticket/Display.html?id='.$tkt->Id(),
         altid_tlp   => 'red',

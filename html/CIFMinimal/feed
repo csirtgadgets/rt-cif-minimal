@@ -1,10 +1,11 @@
 <%INIT>
-require RT::CIFMinimal;
+use RT::CIFMinimal;
 use Data::Dumper;
-use DateTime;
 use JSON::XS;
 
 my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'}, $group, $limit);
+
+warn Dumper($array);
 
 my $feed = JSON::XS->new->encode($array);
 
@@ -16,5 +17,5 @@ $m->abort();
 
 <%ARGS>
 $group => 'everyone'
-$limit  => undef
+$limit  => 100
 </%ARGS>
