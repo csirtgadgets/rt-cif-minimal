@@ -16,6 +16,7 @@ use CIF::SDK::Client qw/parse_config/;
 use RT::CIF_Hash;
 use CIF::StorageFactory;
 use CIF::SDK::FormatFactory;
+use Try::Tiny;
 
 my $storage = CIF::StorageFactory->new_plugin({ 
     plugin => 'elasticsearch'
@@ -35,7 +36,13 @@ my @ipv4_private = (
 
 sub IsPrivateAddress {
     my $addr = shift;
-    my $found =  Net::CIDR::cidrlookup($addr,@ipv4_private);
+    my ($found,$err);
+    try {
+        $found =  Net::CIDR::cidrlookup($addr,@ipv4_private);
+    } catch {
+        $err = shift;
+        $found = 0;
+    }
     return($found);
 }
 

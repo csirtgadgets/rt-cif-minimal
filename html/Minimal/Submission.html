@@ -29,6 +29,7 @@ use CIF::SDK qw/parse_config/;
 use CIF::SDK::Client;
 use JSON::XS;
 use RT::Ticket;
+use RT::CIFMinimal;
 
 unless($data){
     RT::Interface::Web::Redirect(RT->Config->Get('WebURL').'Minimal/Observation.html');
@@ -42,7 +43,6 @@ my $Format = qq{
 };
 
 my $max_submissions = RT->Config->Get('CIFMinimal_MaxSubmissions') || 15;
-
 
 my $config = parse_config(RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif.yml')->{'client'};
 
@@ -84,7 +84,8 @@ if($#datas < $max_submissions){
         $data =~ s/[ \t]+$//g;
         $data =~ s/^[ \t]+//g;
         $data = lc($data);
-        my $source = RT->Config->Get('WebDomain');
+        my $provider = $session{'CurrentUser'}->UserObj()->EmailAddress();
+
         my $msg = {
             group           => $group,
             tlp     		=> $restriction,
@@ -93,8 +94,9 @@ if($#datas < $max_submissions){
             observable      => $data,
             protocol        => $protocol,
             portlist        => $portlist,
-            provider        => $source,
+            provider        => $provider,
             confidence      => $confidence,
+            raw				=> $ARGS{'ReferenceDescription'},
         };
 
         my $subject = $real_assessment.' '.$description;
@@ -118,7 +120,7 @@ if($#datas < $max_submissions){
 
           	my $cfs = RT::CustomFields->new($session{'CurrentUser'});
 			$cfs->LimitToQueue($ticket->Queue());
-			$cfs->Limit(FIELD => 'Description', VALUE => '_IODEF_Incident', OPERATOR => 'LIKE');
+			$cfs->Limit(FIELD => 'Description', VALUE => '_CIF_', OPERATOR => 'LIKE');
 
           	my ($status,$err) = $ticket->AddCustomFieldValue(
           		Field	=> 'Constituency',
@@ -126,16 +128,51 @@ if($#datas < $max_submissions){
           	);
 
           	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Observable',
+          		Value	=> $data
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Tags',
+          		Value	=> $real_assessment
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Service Portlist',
+          		Value	=> $portlist
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Protocol',
+          		Value	=> $protocol
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'ReportDescription',
+          		Value	=> $description
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Confidence',
+          		Value	=> $confidence
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
+          		Field	=> 'Restriction',
+          		Value	=> $restriction
+          	);
+
+          	($status,$err) = $ticket->AddCustomFieldValue(
           		Field	=> 'Share With',
           		Value	=> join(',',@$sharewith)
           	);
 
-			while (my $cf = $cfs->Next()){
-				($status,$err) = $ticket->AddCustomFieldValue(
-					Field	=> $cf->Name(),
-					Value	=> $msg->{$cf->Name()}
-				);
-			}
+			#while (my $cf = $cfs->Next()){
+			#	($status,$err) = $ticket->AddCustomFieldValue(
+			#		Field	=> $cf->Name(),
+			#		Value	=> $msg->{$cf->Name()}
+			#	);
+			#}
 
           	my @res;
 
@@ -153,10 +190,13 @@ if($#datas < $max_submissions){
                 $ret = $cli->submit($msg);
 
                 if($sharewith){
+                	if($msg->{'raw'}){
+                		delete($msg->{'raw'});
+                	}
+                	$msg->{'tlp'} = 'red';
+                	$msg->{'provider'} = RT->Config->Get('WebDomain');
                 	foreach my $p (@$sharewith){
                 		$msg->{'group'} = $p;
-                		use Data::Dumper;
-                		warn Dumper($msg);
                 		$ret = $cli->submit($msg);
                 	}
                 }

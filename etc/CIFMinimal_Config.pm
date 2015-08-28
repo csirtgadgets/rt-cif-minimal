@@ -74,14 +74,14 @@ Set($CIFMinimal_RejectPrivateAddress,1);
 Set($CIFMinimal_HelpUrl,'http://code.google.com/p/collective-intelligence-framework/wiki/Taxonomy');
 
 Set(%CIFMinimal_ShareWith,
-    'leo.example.com'         => {
-        description     => 'Anonymized with Trusted Law Enforcement',
-        checked         => 1,
-    },
-    'partners.example.com'    => {
-        description => 'Anonymized with Trusted Mitigation Partners',
-        checked     => 1,
-    }
+#    'leo.example.com'         => {
+#        description     => 'Anonymized with Trusted Law Enforcement',
+#        checked         => 1,
+#    },
+#    'partners.example.com'    => {
+#        description => 'Anonymized with Trusted Mitigation Partners',
+#        checked     => 1,
+#    }
 );
 
 # this allows you to wrap the RT::User::Create function

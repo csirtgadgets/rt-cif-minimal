@@ -5,8 +5,6 @@ BEGIN {
     require File::Spec;
     my @libs = (
         "/opt/cif/lib",
-        "/opt/rt3/local/plugins/RT-IODEF/lib",
-        "../cif-v1/libcif/lib", # dev mode
     );
     my $bin_path;
 
