@@ -34,8 +34,8 @@ sub IsApplicable {
     }
 
     $arg = $map->{$arg} || return;
-    my $addr = $tkt->FirstCustomFieldValue('Address') || $tkt->FirstCustomFieldAddress('Hash');
-    my $impact = $tkt->FirstCustomFieldValue('Assessment');
+    my $addr = $tkt->FirstCustomFieldValue('Observable') || $tkt->FirstCustomFieldAddress('Hash');
+    my $impact = $tkt->FirstCustomFieldValue('Tags');
     return(1) unless($addr);
     return(0) unless(($addr && $addr =~ $regex) || lc($impact) =~ /whitelist/);
     if(lc($impact) =~ /whitelist/){

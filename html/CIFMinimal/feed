@@ -5,8 +5,6 @@ use JSON::XS;
 
 my $array = RT::CIFMinimal::ReportsByType($session{'CurrentUser'}, $group, $limit);
 
-warn Dumper($array);
-
 my $feed = JSON::XS->new->encode($array);
 
 $r->content_type('text/plain');
