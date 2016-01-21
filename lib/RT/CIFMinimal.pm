@@ -19,7 +19,8 @@ use CIF::SDK::FormatFactory;
 use Try::Tiny;
 
 my $storage = CIF::StorageFactory->new_plugin({ 
-    plugin => 'elasticsearch'
+    plugin => 'elasticsearch',
+    nodes => RT->Config->Get('CIFMinimal_CIF_ES_HOST') || 'localhost:9200',
 });
 
 my @ipv4_private = (
