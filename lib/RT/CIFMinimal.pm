@@ -61,7 +61,6 @@ sub cif_submit {
         no_verify_ssl => $config->{'no_verify_ssl'}
     });
 
-    my $cli = $ret;
     $ret = $cli->new_submission({
         guid    => $guid,
         data    => $report->encode(),
@@ -69,7 +68,7 @@ sub cif_submit {
 
     return $cli->submit($ret);
 }
-dd
+
 
 sub cif_data {
     my $args = shift;
