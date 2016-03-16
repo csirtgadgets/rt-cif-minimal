@@ -12,7 +12,8 @@ use lib '/opt/cif/lib/perl5';
 use Net::Abuse::Utils qw(:all);
 use Regexp::Common qw/net URI/;
 use Net::CIDR;
-use CIF::SDK::Client qw/parse_config/;
+use CIF::SDK qw/parse_config/;
+use CIF::SDK::Client;
 use RT::CIF_Hash;
 use CIF::StorageFactory;
 use CIF::SDK::FormatFactory;
@@ -49,13 +50,17 @@ sub IsPrivateAddress {
 
 sub cif_submit {
     my $args = shift;
-    
+
     my $report  = $args->{'report'};
     my $guid    = $args->{'group'} || 'everyone';
 
-    my ($err,$ret) = CIF::SDK::Client->new({
-        config  => RT->Config->Get('CIFMinimal_CifConfig') || '/home/cif/.cif.yml',
+    my $config = parse_config(RT->Config->Get('CIFMinimal_CifConfig'))->{'client'};
+    my ($err,$ret);
+    my $cli = CIF::SDK::Client->new({
+        remote => $config->{'remote'},
+        no_verify_ssl => $config->{'no_verify_ssl'}
     });
+
     my $cli = $ret;
     $ret = $cli->new_submission({
         guid    => $guid,
@@ -64,24 +69,27 @@ sub cif_submit {
 
     return $cli->submit($ret);
 }
+dd
 
 sub cif_data {
     my $args = shift;
-    
+
     my $fields  = $args->{'fields'} || 'tlp,group,confidence,observable,rdata,portlist,protocol,tags,description,reporttime';
     my $q       = $args->{'q'}      || $args->{'query'};
     my $nolog   = $args->{'nolog'}  || 0;
     my $limit   = $args->{'limit'}  || 25;
     my $results = $args->{'results'};
     my $user    = $args->{'user'};
-    
+
     return unless($q);
-    my ($ret,$err);
+    my ($ret,$err, $client);
     my $token = user_list($user);
-    
-    my $client = CIF::SDK::Client->new({
-        remote  => 'https://localhost', # TODO
-        verify_ssl => 0,
+
+    my $config = parse_config(RT->Config->Get('CIFMinimal_CifConfig'))->{'client'};
+
+    $client = CIF::SDK::Client->new({
+        remote => $config->{'remote'},
+        no_verify_ssl => $config->{'no_verify_ssl'}
     });
     
     unless($token){
@@ -101,9 +109,7 @@ sub cif_data {
 
     my @res;
     my @array = split(/,/,$q);
-    
-    warn $q;
-    
+   
     ($ret, $err) = $client->search({
         observable  => $q,
         nolog       => 0,
