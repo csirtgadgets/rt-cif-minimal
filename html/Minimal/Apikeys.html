@@ -50,17 +50,27 @@ $restrictions = join(',',@$restrictions) if($restrictions && (ref($restrictions)
 
 if($GenerateKey){
     my $found = 0;
+	my $fail = 0;
 
-    $restrictions = undef if($restrictions && $restrictions eq 'none');
-    my $id = RT::CIFMinimal::generate_apikey({
-        user            => $user,
-        description     => $key_description,
-        groups          => $add_groups,
-    });
-    if($id){
-        push(@results,'key '.$id.' successfully generated');
+	foreach my $a (@{$add_groups}){
+		if(!exists($group_map{$a})){
+			$fail = 1;
+		}
+	}
+	if(!$fail){
+	    $restrictions = undef if($restrictions && $restrictions eq 'none');
+	    my $id = RT::CIFMinimal::generate_apikey({
+	        user            => $user,
+	        description     => $key_description,
+	        groups          => $add_groups,
+	    });
+	    if($id){
+	        push(@results,'key '.$id.' successfully generated');
+	    } else {
+	        push(@results,'key generation failed');
+	    }
     } else {
-        push(@results,'key generation failed');
+    	push(@results, 'key generation failed');
     }
 }
 
