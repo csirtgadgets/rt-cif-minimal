@@ -20,11 +20,7 @@ require RT::CIFMinimal;
 my $user = $session{'CurrentUser'}->UserObj();
 
 my @access_types = (
-    'infrastructure/malware','infrastructure/botnet','infrastructure/phishing','infrastructure/scan','infrastructure/suspicious',
-    'domain/malware','domain/botnet','domain/phishing','domain/suspicious','domain/spam',
-    'url/botnet','url/malware','url/phishing',
-    'malware/md5','malware/md5',
-    'email/phishing','email/spam'
+    'all', 'fqdn', 'ipv4', 'url'
 );
 
 @access_types = sort { $a cmp $b } @access_types;
@@ -63,6 +59,7 @@ if($GenerateKey){
 	        user            => $user,
 	        description     => $key_description,
 	        groups          => $add_groups,
+	        acl				=> $restrictions,
 	    });
 	    if($id){
 	        push(@results,'key '.$id.' successfully generated');

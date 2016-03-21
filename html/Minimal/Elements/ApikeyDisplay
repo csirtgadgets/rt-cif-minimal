@@ -4,6 +4,7 @@
         <td></td>
         <td><b>Token</b></td>
         <td><b>Description</b></td>
+        <td><b>ACL</b></td>
         <td>
             <table>
                 <tr>
@@ -18,6 +19,7 @@
         <td><& /Elements/Submit, Name => 'PurgeKey', Label => loc('Purge Key') &></td>
         <td><input type='hidden' name='token' value='<%$r->{'token'}%>'><%$r->{'token'}%></td>
         <td><%$r->{'description'} || 'None'%></td>
+        <td><%$r->{'acl'} || 'None'%></td>
         <td>
             <table>
             	<tr>

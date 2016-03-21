@@ -156,7 +156,7 @@ sub generate_apikey {
     my $user            = $args->{'user'};
     my $key_desc        = $args->{'description'};
     my $add_groups      = $args->{'groups'};
-    my $restrictions    = $args->{'restrictions'};
+    my $restrictions    = $args->{'acl'};
 
     return unless($user && ref($user) eq 'RT::User');
     
@@ -188,6 +188,7 @@ sub generate_apikey {
         'read'          => 1,
         description     => $key_desc,
         groups          => \@a_groups,
+        acl             => $restrictions
     });
     return $rv;
 }
