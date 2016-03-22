@@ -117,7 +117,12 @@ sub cif_data {
 
     my @html;
     unless($ret){
-        push(@$results,'no results...');
+        if($err){
+            $RT::Logger->error($err);
+            push(@$results,'connection failure to SES, contact system adminstrator');
+        } else {
+            push(@$results,'no results...');
+        }
         return;
     } else {
         push(@html, @$ret);
