@@ -13,7 +13,7 @@
     <tr>
         <td>
             <b>Key Groups</b><br>
-            <i>Groups this key should<br>be able to access</i>
+            <i>Groups this key should<br>be able to access (leave unselected for <b>everything</b>)</i>
         </td>
         <td align="right">
             <select name="add_groups" multiple="multiple">

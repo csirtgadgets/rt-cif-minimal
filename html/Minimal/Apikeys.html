@@ -20,7 +20,7 @@ require RT::CIFMinimal;
 my $user = $session{'CurrentUser'}->UserObj();
 
 my @access_types = (
-    'all', 'fqdn', 'ipv4', 'url'
+    'fqdn', 'ipv4', 'url'
 );
 
 @access_types = sort { $a cmp $b } @access_types;
