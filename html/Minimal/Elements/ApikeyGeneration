@@ -1,7 +1,12 @@
 <h1>Key Generation</h1>
 <& ApikeyWarning &>
 <br><br>
-        <form method="post">
+<form method="post">
+<b>Step 1.</b> Fill out the key description field, use a name<br>
+that might help you determine where the key is being used (ie: "bro sensor" or "bind server").<br><br>
+
+<b>Step 2.</b> Click "Generate Key". <br><br>
+
 <table>
     <tr>
         <td>
@@ -11,9 +16,21 @@
         <td><input type='text' name='key_description' size=30 value='myapp'/></td>
     </tr>
     <tr>
+        <td></td>
+        <td>
+            <& /Elements/Submit, Name => 'GenerateKey', Label => loc('Generate Key') &>
+        </td>
+    </tr>
+    <tr>
+    	<td><h2>Advanced Settings</h2></td>
+    </tr>
+    <tr>
+    	<td><b>ONLY CHANGE THESE IF YOU KNOW WHAT YOU ARE DOING</b></td>
+    </tr>
+    <tr>
         <td>
             <b>Key Groups</b><br>
-            <i>Groups this key should<br>be able to access (leave unselected for <b>everything</b>)</i>
+            <i>Groups this key should<br>be able to access</i>
         </td>
         <td align="right">
             <select name="add_groups" multiple="multiple">
@@ -27,7 +44,7 @@
     <tr>
         <td>
             <b>Key ACLs</b><br>
-            <i>Datatypes this key should<br>be able to access</i>
+            <i>Datatypes this key should<br>be able to access (leave unselected for <b>everything</b>)</i>
         </td>
         <td align="right">
             <select name="restrictions" multiple="multiple">
@@ -36,12 +53,6 @@
 % }
 
             </select>
-        </td>
-    </tr>
-    <tr>
-        <td></td>
-        <td>
-            <& /Elements/Submit, Name => 'GenerateKey', Label => loc('Generate Key') &>
         </td>
     </tr>
 </table>
