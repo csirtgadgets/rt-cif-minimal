@@ -1,0 +1,16 @@
+<div id="deferred_ticket_history">
+    <& /Widgets/TitleBoxStart, title => loc('History') &>
+        <a href="<% $display %>" onclick="jQuery('#deferred_ticket_history').text(<% loc('Loading...') |n,j%>).load(<% $url |n,j %>); return false;" ><% loc('Show ticket history') %></a>
+    <& /Widgets/TitleBoxEnd &>
+</div>
+<%ARGS>
+$Ticket
+</%ARGS>
+<%INIT>
+my %params = %ARGS;
+delete $params{Ticket};
+
+my $query   = $m->comp('/Elements/QueryString', %params, id => $Ticket->id );
+my $url     = RT->Config->Get('WebPath')."/Minimal/Helpers/TicketHistory?$query";
+my $display = RT->Config->Get('WebPath')."/Mininal/Display.html?ForceShowHistory=1;$query";
+</%INIT>

@@ -21,7 +21,7 @@
 </table>
 
 %#!!pape: selfservice_find_attachments.patch {{
-<& /Ticket/Elements/ClickToShowHistory,
+<& /Minimal/Elements/ClickToShowHistory,
       Ticket => $Ticket,
       ShowHeaders => $ARGS{'ShowHeaders'},
       DisplayPath    => RT->Config->Get('WebPath') ."/Minimal/Display.html?id=$id",
