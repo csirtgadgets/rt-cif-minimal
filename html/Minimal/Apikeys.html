@@ -48,6 +48,9 @@ if($GenerateKey){
     my $found = 0;
 	my $fail = 0;
 
+    if(ref($add_groups) != 'ARRAY'){
+        $add_groups = [ $add_groups ];
+    }
 	foreach my $a (@{$add_groups}){
 		if(!exists($group_map{$a})){
 			$fail = 1;
