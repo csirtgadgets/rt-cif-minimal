@@ -86,6 +86,12 @@ if($#datas < $max_submissions){
         $data = lc($data);
         my $provider = $session{'CurrentUser'}->UserObj()->EmailAddress();
 
+        if($data =~ /\/$/){
+        	$data = substr($data, 0, -1);
+        }
+
+        $data = lc($data);
+
         my $msg = {
             group           => $group,
             tlp     		=> $restriction,
