@@ -48,7 +48,7 @@ if($GenerateKey){
     my $found = 0;
 	my $fail = 0;
 
-    if(ref($add_groups) != 'ARRAY'){
+    if(ref($add_groups) eq ''){
         $add_groups = [ $add_groups ];
     }
 	foreach my $a (@{$add_groups}){
